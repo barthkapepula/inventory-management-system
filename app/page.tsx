@@ -37,7 +37,8 @@ interface InventoryItem {
 interface Filters {
   farmerId: string
   buyerId: string
-  dateFormated: string
+  dateFrom: string
+  dateTo: string
   search: string
   tobaccoType: string
   stationId: string
@@ -57,7 +58,8 @@ export default function TobaccoInventoryDashboard() {
   const [filters, setFilters] = useState<Filters>({
     farmerId: "",
     buyerId: "",
-    dateFormated: "",
+    dateFrom: "",
+    dateTo: "",
     search: "",
     tobaccoType: "",
     stationId: "",
@@ -77,6 +79,13 @@ export default function TobaccoInventoryDashboard() {
     tobaccoType: true,
     dateFormated: true,
     dispatchId: true,
+  })
+
+  const [showStationModal, setShowStationModal] = useState(false)
+  const [stationReportFilters, setStationReportFilters] = useState({
+    stationId: "",
+    dateFrom: "",
+    dateTo: "",
   })
 
   // Fetch data from API
@@ -109,9 +118,25 @@ export default function TobaccoInventoryDashboard() {
 
   const uniqueStationIds = useMemo(() => [...new Set(data.map((item) => item.stationId))].filter(Boolean), [data])
 
+  // Helper function to parse date from DD/M/YYYY format
+  const parseDate = (dateStr: string) => {
+    const parts = dateStr.split("/")
+    if (parts.length === 3) {
+      const day = Number.parseInt(parts[0])
+      const month = Number.parseInt(parts[1]) - 1 // Month is 0-indexed
+      const year = Number.parseInt(parts[2])
+      return new Date(year, month, day)
+    }
+    return null
+  }
+
   // Filter and sort data
   const filteredAndSortedData = useMemo(() => {
     const filtered = data.filter((item) => {
+      // Only include records with price > 0
+      const price = Number.parseFloat(item.price || "0")
+      if (price <= 0) return false
+
       const matchesFarmerId = !filters.farmerId || item.farmerId.toLowerCase().includes(filters.farmerId.toLowerCase())
       const matchesBuyerId = !filters.buyerId || item.buyerId.toLowerCase().includes(filters.buyerId.toLowerCase())
       const matchesTobaccoType =
@@ -119,26 +144,36 @@ export default function TobaccoInventoryDashboard() {
       const matchesStationId =
         !filters.stationId || item.stationId.toLowerCase().includes(filters.stationId.toLowerCase())
 
-      // Improved date filtering
-      const matchesDate = (() => {
-        if (!filters.dateFormated) return true
+      // Date range filtering
+      const matchesDateRange = (() => {
+        if (!filters.dateFrom && !filters.dateTo) return true
 
-        // Convert the filter date (YYYY-MM-DD) to DD/M/YYYY format to match API data
-        const filterDate = new Date(filters.dateFormated)
-        const filterDay = filterDate.getDate()
-        const filterMonth = filterDate.getMonth() + 1 // getMonth() returns 0-11
-        const filterYear = filterDate.getFullYear()
-        const formattedFilterDate = `${filterDay}/${filterMonth}/${filterYear}`
+        const itemDate = parseDate(item.dateFormated)
+        if (!itemDate) return false
 
-        // Also check if the item date matches the formatted filter date
-        return item.dateFormated === formattedFilterDate
+        let matchesFrom = true
+        let matchesTo = true
+
+        if (filters.dateFrom) {
+          const fromDate = new Date(filters.dateFrom)
+          matchesFrom = itemDate >= fromDate
+        }
+
+        if (filters.dateTo) {
+          const toDate = new Date(filters.dateTo)
+          matchesTo = itemDate <= toDate
+        }
+
+        return matchesFrom && matchesTo
       })()
 
       const matchesSearch =
         !filters.search ||
         Object.values(item).some((value) => value.toString().toLowerCase().includes(filters.search.toLowerCase()))
 
-      return matchesFarmerId && matchesBuyerId && matchesTobaccoType && matchesStationId && matchesDate && matchesSearch
+      return (
+        matchesFarmerId && matchesBuyerId && matchesTobaccoType && matchesStationId && matchesDateRange && matchesSearch
+      )
     })
 
     // Sort data
@@ -229,37 +264,412 @@ export default function TobaccoInventoryDashboard() {
     }, 100)
   }
 
-  // Export to PDF (Clean, professional table with direct PDF generation)
+  // Export to PDF (Sales Summary Per Station format)
   const exportToPDF = () => {
+    // Only include records with price > 0 for PDF export
+    const validPriceData = filteredAndSortedData.filter((item) => {
+      const price = Number.parseFloat(item.price || "0")
+      return price > 0
+    })
+
+    if (validPriceData.length === 0) {
+      alert("No records with valid prices found for the selected filters.")
+      return
+    }
+
     const currentDate = new Date().toLocaleDateString()
     const currentTime = new Date().toLocaleTimeString()
 
-    // Calculate USD values for all items
-    const dataWithUSD = filteredAndSortedData.map((item) => ({
+    // Group data by date and station for summary
+    const summaryData = validPriceData.reduce(
+      (acc, item) => {
+        const key = `${item.dateFormated}-${item.stationId}-${item.tobaccoType}`
+
+        if (!acc[key]) {
+          acc[key] = {
+            date: item.dateFormated,
+            stationId: item.stationId,
+            tobaccoType: item.tobaccoType,
+            barcodes: new Set(), // Track unique barcodes
+            totalWeight: 0,
+            totalValue: 0,
+            priceSum: 0,
+            priceCount: 0,
+          }
+        }
+
+        // Add barcode to set (automatically handles uniqueness)
+        if (item.barcodeId) {
+          acc[key].barcodes.add(item.barcodeId)
+        }
+
+        acc[key].totalWeight += Number.parseFloat(item.weight || "0")
+
+        const price = Number.parseFloat(item.price)
+        const weight = Number.parseFloat(item.weight || "0")
+        acc[key].totalValue += price * weight
+        acc[key].priceSum += price
+        acc[key].priceCount += 1
+
+        return acc
+      },
+      {} as Record<string, any>,
+    )
+
+    const summaryArray = Object.values(summaryData).map((item: any) => ({
       ...item,
-      usdValue:
-        item.price && item.weight
-          ? (Number.parseFloat(item.price) * Number.parseFloat(item.weight)).toFixed(2)
-          : "0.00",
+      noOfBales: item.barcodes.size, // Count unique barcodes
+      averagePrice: item.priceCount > 0 ? (item.priceSum / item.priceCount).toFixed(2) : "0.00",
     }))
 
-    // Create a clean, minimal HTML structure optimized for PDF
-    const printWindow = window.open("", "_blank", "width=1200,height=800")
+    // Sort by date
+    summaryArray.sort((a, b) => {
+      const dateA = parseDate(a.date)
+      const dateB = parseDate(b.date)
+      if (!dateA || !dateB) return 0
+      return dateA.getTime() - dateB.getTime()
+    })
+
+    // Calculate totals
+    const totals = summaryArray.reduce(
+      (acc, item) => ({
+        noOfBales: acc.noOfBales + item.noOfBales, // Sum of unique barcodes
+        totalWeight: acc.totalWeight + item.totalWeight,
+        totalValue: acc.totalValue + item.totalValue,
+      }),
+      { noOfBales: 0, totalWeight: 0, totalValue: 0 },
+    )
+
+    // Get date range from filters or data
+    let dateFrom = "All Dates"
+    let dateTo = "All Dates"
+
+    if (filters.dateFrom || filters.dateTo) {
+      dateFrom = filters.dateFrom ? new Date(filters.dateFrom).toLocaleDateString("en-GB") : "Start"
+      dateTo = filters.dateTo ? new Date(filters.dateTo).toLocaleDateString("en-GB") : "End"
+    } else {
+      // Get from actual data
+      const dates = validPriceData.map((item) => parseDate(item.dateFormated)).filter(Boolean) as Date[]
+      if (dates.length > 0) {
+        const minDate = new Date(Math.min(...dates.map((d) => d.getTime())))
+        const maxDate = new Date(Math.max(...dates.map((d) => d.getTime())))
+        dateFrom = minDate.toLocaleDateString("en-GB")
+        dateTo = maxDate.toLocaleDateString("en-GB")
+      }
+    }
+
+    // Get unique station and tobacco type for header
+    const uniqueStations = [...new Set(validPriceData.map((item) => item.stationId))]
+    const uniqueTobaccoTypes = [...new Set(validPriceData.map((item) => item.tobaccoType))]
+
+    const stationName = uniqueStations.length === 1 ? uniqueStations[0] : "MULTIPLE STATIONS"
+    const tobaccoTypeName = uniqueTobaccoTypes.length === 1 ? uniqueTobaccoTypes[0] : "MULTIPLE TYPES"
+
+    // Create PDF window
+    const printWindow = window.open("", "_blank", "width=800,height=600")
     if (!printWindow) {
       alert("Please allow popups to generate PDF")
       return
     }
 
     const htmlContent = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <title>Sales_Summary_Per_Station_${new Date().toISOString().split("T")[0]}</title>
+        <style>
+          @page {
+            size: A4 portrait;
+            margin: 20mm;
+          }
+          
+          * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+          }
+          
+          body {
+            font-family: 'Arial', sans-serif;
+            font-size: 12px;
+            line-height: 1.4;
+            color: #000;
+            background: white;
+          }
+          
+          .report-header {
+            text-align: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #000;
+          }
+          
+          .report-title {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+          }
+          
+          .header-info {
+            margin: 5px 0;
+            font-size: 12px;
+          }
+          
+          .header-info strong {
+            font-weight: bold;
+          }
+          
+          .summary-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+          }
+          
+          .summary-table th,
+          .summary-table td {
+            border: 1px solid #000;
+            padding: 8px 6px;
+            text-align: center;
+            font-size: 11px;
+          }
+          
+          .summary-table th {
+            background-color: #f0f0f0;
+            font-weight: bold;
+            text-transform: uppercase;
+          }
+          
+          .summary-table .text-right {
+            text-align: right;
+          }
+          
+          .summary-table .text-left {
+            text-align: left;
+          }
+          
+          .totals-row {
+            background-color: #f5f5f5;
+            font-weight: bold;
+          }
+          
+          .totals-row td {
+            border-top: 2px solid #000;
+          }
+          
+          .filter-info {
+            margin-bottom: 10px;
+            font-size: 10px;
+            color: #666;
+            text-align: center;
+          }
+          
+          @media print {
+            body { 
+              margin: 0; 
+              -webkit-print-color-adjust: exact;
+              print-color-adjust: exact;
+            }
+            .no-print { display: none !important; }
+            .summary-table th {
+              background-color: #f0f0f0 !important;
+              -webkit-print-color-adjust: exact;
+              print-color-adjust: exact;
+            }
+            .totals-row {
+              background-color: #f5f5f5 !important;
+              -webkit-print-color-adjust: exact;
+              print-color-adjust: exact;
+            }
+          }
+        </style>
+      </head>
+      <body>
+        <div class="report-header">
+          <div class="report-title">Sales Summary Per Station</div>
+          <div class="header-info"><strong>Date:</strong> ${dateFrom} until ${dateTo}</div>
+          <div class="header-info"><strong>Station ID:</strong> ${stationName}</div>
+          <div class="header-info"><strong>Tobacco Type:</strong> ${tobaccoTypeName}</div>
+        </div>
+
+        <div class="filter-info">
+          <strong>Note:</strong> Only records with price > $0 are included in this summary
+        </div>
+
+        <table class="summary-table">
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>No of Bales</th>
+              <th>Weight (kg)</th>
+              <th>Average Price ($)</th>
+              <th>Total ($)</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${summaryArray
+              .map(
+                (item) => `
+              <tr>
+                <td class="text-left">${item.date}</td>
+                <td>${item.noOfBales}</td>
+                <td class="text-right">${item.totalWeight.toFixed(2)}</td>
+                <td class="text-right">${item.averagePrice}</td>
+                <td class="text-right">${item.totalValue.toFixed(2)}</td>
+              </tr>
+            `,
+              )
+              .join("")}
+            <tr class="totals-row">
+              <td class="text-left"><strong>TOTAL</strong></td>
+              <td><strong>${totals.noOfBales}</strong></td>
+              <td class="text-right"><strong>${totals.totalWeight.toFixed(2)}</strong></td>
+              <td class="text-right"><strong>-</strong></td>
+              <td class="text-right"><strong>${totals.totalValue.toFixed(2)}</strong></td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div class="no-print" style="position: fixed; top: 10px; right: 10px; background: white; padding: 10px; border: 1px solid #ccc; border-radius: 4px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+          <button onclick="window.print()" style="padding: 8px 16px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; margin-right: 8px; font-size: 12px;">📄 Save as PDF</button>
+          <button onclick="window.close()" style="padding: 8px 16px; background: #6c757d; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;">✖ Close</button>
+        </div>
+
+        <script>
+          // Set document title for better PDF naming
+          document.title = 'Sales_Summary_Per_Station_${new Date().toISOString().split("T")[0]}';
+          
+          // Auto-trigger print dialog after a short delay
+          window.onload = function() {
+            setTimeout(function() {
+              const printBtn = document.querySelector('button[onclick="window.print()"]');
+              if (printBtn) {
+                printBtn.focus();
+                printBtn.style.animation = 'pulse 2s infinite';
+              }
+            }, 500);
+          };
+          
+          // Add pulse animation
+          const style = document.createElement('style');
+          style.textContent = \`
+            @keyframes pulse {
+              0% { transform: scale(1); }
+              50% { transform: scale(1.05); }
+              100% { transform: scale(1); }
+            }
+          \`;
+          document.head.appendChild(style);
+        </script>
+      </body>
+      </html>
+    `
+
+    printWindow.document.write(htmlContent)
+    printWindow.document.close()
+  }
+
+  // Export Summarized Report per Station
+  const exportStationSummaryPDF = () => {
+    if (!stationReportFilters.dateFrom || !stationReportFilters.dateTo) {
+      alert("Please select both start and end dates.")
+      return
+    }
+
+    // Filter data based on modal selections
+    const stationFilteredData = data.filter((item) => {
+      // Only include records with price > 0
+      const price = Number.parseFloat(item.price || "0")
+      if (price <= 0) return false
+
+      // Station filter
+      const matchesStation = !stationReportFilters.stationId || item.stationId === stationReportFilters.stationId
+
+      // Date range filter
+      const itemDate = parseDate(item.dateFormated)
+      if (!itemDate) return false
+
+      const fromDate = new Date(stationReportFilters.dateFrom)
+      const toDate = new Date(stationReportFilters.dateTo)
+      const matchesDateRange = itemDate >= fromDate && itemDate <= toDate
+
+      return matchesStation && matchesDateRange
+    })
+
+    if (stationFilteredData.length === 0) {
+      alert("No records found for the selected criteria.")
+      return
+    }
+
+    // Group data by station
+    const stationSummary = stationFilteredData.reduce(
+      (acc, item) => {
+        const stationId = item.stationId
+
+        if (!acc[stationId]) {
+          acc[stationId] = {
+            stationId,
+            barcodes: new Set(), // Track unique barcodes
+            totalWeight: 0,
+            totalValue: 0,
+            priceSum: 0,
+            priceCount: 0,
+          }
+        }
+
+        // Add barcode to set (automatically handles uniqueness)
+        if (item.barcodeId) {
+          acc[stationId].barcodes.add(item.barcodeId)
+        }
+
+        acc[stationId].totalWeight += Number.parseFloat(item.weight || "0")
+
+        const price = Number.parseFloat(item.price)
+        const weight = Number.parseFloat(item.weight || "0")
+        acc[stationId].totalValue += price * weight
+        acc[stationId].priceSum += price
+        acc[stationId].priceCount += 1
+
+        return acc
+      },
+      {} as Record<string, any>,
+    )
+
+    const stationArray = Object.values(stationSummary).map((station: any) => ({
+      ...station,
+      noOfBales: station.barcodes.size, // Count unique barcodes
+      averagePrice: station.priceCount > 0 ? (station.priceSum / station.priceCount).toFixed(2) : "0.00",
+    }))
+
+    // Calculate totals
+    const totals = stationArray.reduce(
+      (acc, station) => ({
+        noOfBales: acc.noOfBales + station.noOfBales, // Sum of unique barcodes per station
+        totalWeight: acc.totalWeight + station.totalWeight,
+        totalValue: acc.totalValue + station.totalValue,
+      }),
+      { noOfBales: 0, totalWeight: 0, totalValue: 0 },
+    )
+
+    // Get tobacco types
+    const uniqueTobaccoTypes = [...new Set(stationFilteredData.map((item) => item.tobaccoType))]
+    const tobaccoTypeName = uniqueTobaccoTypes.length === 1 ? uniqueTobaccoTypes[0] : "MULTIPLE TYPES"
+
+    const dateFrom = new Date(stationReportFilters.dateFrom).toLocaleDateString("en-GB")
+    const dateTo = new Date(stationReportFilters.dateTo).toLocaleDateString("en-GB")
+
+    // Create PDF content
+    const htmlContent = `
     <!DOCTYPE html>
     <html>
     <head>
       <meta charset="utf-8">
-      <title>Tobacco_Inventory_Report_${new Date().toISOString().split("T")[0]}</title>
+      <title>Sales_Summary_By_Station_${new Date().toISOString().split("T")[0]}</title>
       <style>
         @page {
-          size: A4 landscape;
-          margin: 15mm;
+          size: A4 portrait;
+          margin: 20mm;
         }
         
         * {
@@ -270,75 +680,72 @@ export default function TobaccoInventoryDashboard() {
         
         body {
           font-family: 'Arial', sans-serif;
-          font-size: 8px;
-          line-height: 1.2;
+          font-size: 12px;
+          line-height: 1.4;
           color: #000;
           background: white;
         }
         
         .report-header {
           text-align: center;
-          margin-bottom: 12px;
-          padding-bottom: 8px;
-          border-bottom: 1px solid #000;
+          margin-bottom: 25px;
+          padding-bottom: 15px;
         }
         
         .report-title {
-          font-size: 16px;
+          font-size: 18px;
           font-weight: bold;
-          margin-bottom: 4px;
-          color: #000;
+          margin-bottom: 15px;
+          text-transform: uppercase;
         }
         
-        .report-info {
-          font-size: 9px;
-          color: #333;
+        .header-info {
+          margin: 8px 0;
+          font-size: 12px;
+          text-align: left;
         }
         
-        .data-table {
+        .header-info strong {
+          font-weight: bold;
+        }
+        
+        .summary-table {
           width: 100%;
           border-collapse: collapse;
-          margin-top: 8px;
+          margin-top: 20px;
         }
         
-        .data-table th,
-        .data-table td {
-          border: 0.5px solid #000;
-          padding: 3px 2px;
-          text-align: left;
-          vertical-align: top;
-          font-size: 7px;
+        .summary-table th,
+        .summary-table td {
+          border: 1px solid #000;
+          padding: 10px 8px;
+          text-align: center;
+          font-size: 11px;
         }
         
-        .data-table th {
+        .summary-table th {
           background-color: #f0f0f0;
           font-weight: bold;
-          text-align: center;
-          font-size: 7px;
-          padding: 4px 2px;
+          text-transform: uppercase;
         }
         
-        .data-table tbody tr:nth-child(even) {
-          background-color: #f8f8f8;
+        .summary-table .text-right {
+          text-align: right;
         }
         
-        .text-center { text-align: center; }
-        .text-right { text-align: right; }
-        .text-mono { font-family: 'Courier New', monospace; }
+        .summary-table .text-left {
+          text-align: left;
+        }
         
-        .col-barcode { width: 8%; }
-        .col-weight { width: 6%; }
-        .col-farmer { width: 8%; }
-        .col-station { width: 6%; }
-        .col-buyer { width: 8%; }
-        .col-registrar { width: 8%; }
-        .col-lot { width: 6%; }
-        .col-grade { width: 6%; }
-        .col-price { width: 6%; }
-        .col-usd { width: 7%; }
-        .col-tobacco { width: 9%; }
-        .col-date { width: 7%; }
-        .col-dispatch { width: 15%; }
+        .totals-row {
+          background-color: #f5f5f5;
+          font-weight: bold;
+        }
+        
+        .totals-row td {
+          border-top: 2px solid #000;
+          font-weight: bold;
+        }
         
         @media print {
           body { 
@@ -347,13 +754,13 @@ export default function TobaccoInventoryDashboard() {
             print-color-adjust: exact;
           }
           .no-print { display: none !important; }
-          .data-table th {
+          .summary-table th {
             background-color: #f0f0f0 !important;
             -webkit-print-color-adjust: exact;
             print-color-adjust: exact;
           }
-          .data-table tbody tr:nth-child(even) {
-            background-color: #f8f8f8 !important;
+          .totals-row {
+            background-color: #f5f5f5 !important;
             -webkit-print-color-adjust: exact;
             print-color-adjust: exact;
           }
@@ -362,92 +769,77 @@ export default function TobaccoInventoryDashboard() {
     </head>
     <body>
       <div class="report-header">
-        <div class="report-title">TOBACCO INVENTORY REPORT</div>
-        <div class="report-info">
-          Generated: ${currentDate} ${currentTime} | 
-          Records: ${dataWithUSD.length} | 
-          ${Object.values(filters).some((f) => f) ? "Filtered Data" : "Complete Dataset"}
-        </div>
+        <div class="report-title">Sales Summary by Station</div>
+        <div class="header-info"><strong>Date:</strong> ${dateFrom} until ${dateTo}</div>
+        <div class="header-info"><strong>Tobacco Type:</strong> ${tobaccoTypeName}</div>
       </div>
 
-      <table class="data-table">
+      <table class="summary-table">
         <thead>
           <tr>
-            <th class="col-barcode">Barcode ID</th>
-            <th class="col-weight">Weight (kg)</th>
-            <th class="col-farmer">Farmer ID</th>
-            <th class="col-station">Station</th>
-            <th class="col-buyer">Buyer ID</th>
-            <th class="col-registrar">Registrar</th>
-            <th class="col-lot">Lot #</th>
-            <th class="col-grade">Grade</th>
-            <th class="col-price">Price ($)</th>
-            <th class="col-usd">USD Value</th>
-            <th class="col-tobacco">Tobacco Type</th>
-            <th class="col-date">Date</th>
-            <th class="col-dispatch">Dispatch ID</th>
+            <th>Station ID</th>
+            <th>No. of Bales</th>
+            <th>Weight</th>
+            <th>Price</th>
+            <th>Total ($)</th>
           </tr>
         </thead>
         <tbody>
-          ${dataWithUSD
+          ${stationArray
             .map(
-              (item, index) => `
+              (station) => `
             <tr>
-              <td class="text-mono">${item.barcodeId || ""}</td>
-              <td class="text-right">${item.weight}</td>
-              <td class="text-center">${item.farmerId}</td>
-              <td class="text-center">${item.stationId}</td>
-              <td class="text-center">${item.buyerId}</td>
-              <td>${item.registra}</td>
-              <td class="text-center">${item.lotNumber}</td>
-              <td class="text-center">${item.grade || ""}</td>
-              <td class="text-right">${item.price || ""}</td>
-              <td class="text-right">${item.usdValue}</td>
-              <td>${item.tobaccoType}</td>
-              <td class="text-center">${item.dateFormated}</td>
-              <td class="text-mono">${item.dispatchId || ""}</td>
+              <td class="text-left">${station.stationId}</td>
+              <td>${station.noOfBales}</td>
+              <td class="text-right">${station.totalWeight.toFixed(0)}</td>
+              <td class="text-right">${station.averagePrice}</td>
+              <td class="text-right">${station.totalValue.toFixed(2)}</td>
             </tr>
           `,
             )
             .join("")}
+          <tr class="totals-row">
+            <td class="text-left"><strong>TOTAL</strong></td>
+            <td><strong>${totals.noOfBales}</strong></td>
+            <td class="text-right"><strong>${totals.totalWeight.toFixed(0)}</strong></td>
+            <td class="text-right"><strong>—</strong></td>
+            <td class="text-right"><strong>${totals.totalValue.toFixed(2)}</strong></td>
+          </tr>
         </tbody>
       </table>
 
-      <div class="no-print" style="position: fixed; top: 10px; right: 10px; background: white; padding: 10px; border: 1px solid #ccc; border-radius: 4px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
-        <button onclick="window.print()" style="padding: 8px 16px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; margin-right: 8px; font-size: 12px;">📄 Save as PDF</button>
-        <button onclick="window.close()" style="padding: 8px 16px; background: #6c757d; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;">✖ Close</button>
-      </div>
-
       <script>
         // Set document title for better PDF naming
-        document.title = 'Tobacco_Inventory_Report_${new Date().toISOString().split("T")[0]}';
+        document.title = 'Sales_Summary_By_Station_${new Date().toISOString().split("T")[0]}';
         
-        // Focus on the print button
+        // Auto-trigger print dialog
         window.onload = function() {
-          const printBtn = document.querySelector('button[onclick="window.print()"]');
-          if (printBtn) {
-            printBtn.focus();
-            printBtn.style.animation = 'pulse 2s infinite';
-          }
+          setTimeout(function() {
+            window.print();
+          }, 500);
         };
         
-        // Add pulse animation
-        const style = document.createElement('style');
-        style.textContent = \`
-          @keyframes pulse {
-            0% { transform: scale(1); }
-            50% { transform: scale(1.05); }
-            100% { transform: scale(1); }
-          }
-        \`;
-        document.head.appendChild(style);
+        // Close window after printing
+        window.onafterprint = function() {
+          window.close();
+        };
       </script>
     </body>
     </html>
   `
 
+    // Open new window and trigger download
+    const printWindow = window.open("", "_blank", "width=800,height=600")
+    if (!printWindow) {
+      alert("Please allow popups to generate PDF")
+      return
+    }
+
     printWindow.document.write(htmlContent)
     printWindow.document.close()
+
+    // Close modal after export
+    setShowStationModal(false)
   }
 
   // Check if row has missing data
@@ -498,6 +890,10 @@ export default function TobaccoInventoryDashboard() {
             <FileText className="h-4 w-4 mr-2" />
             Export PDF
           </Button>
+          <Button onClick={() => setShowStationModal(true)} variant="outline" size="sm">
+            <FileText className="h-4 w-4 mr-2" />
+            Export Summarized Report per Station
+          </Button>
         </div>
       </div>
 
@@ -523,8 +919,10 @@ export default function TobaccoInventoryDashboard() {
         </Card>
         <Card>
           <CardContent className="pt-6">
-            <div className="text-2xl font-bold">{data.filter((item) => hasMissingData(item)).length}</div>
-            <p className="text-sm text-gray-600">Incomplete Records</p>
+            <div className="text-2xl font-bold">
+              {data.filter((item) => Number.parseFloat(item.price || "0") > 0).length}
+            </div>
+            <p className="text-sm text-gray-600">Records with Price</p>
           </CardContent>
         </Card>
       </div>
@@ -632,26 +1030,36 @@ export default function TobaccoInventoryDashboard() {
               </Select>
             </div>
 
-            <div>
-              <label className="text-sm font-medium mb-2 block">Date</label>
+            <div className="md:col-span-1">
+              <label className="text-sm font-medium mb-2 block">Date From</label>
               <Input
                 type="date"
-                value={filters.dateFormated}
-                onChange={(e) => setFilters((prev) => ({ ...prev, dateFormated: e.target.value }))}
-                placeholder="Select date"
+                value={filters.dateFrom}
+                onChange={(e) => setFilters((prev) => ({ ...prev, dateFrom: e.target.value }))}
+                placeholder="Start date"
               />
-              {filters.dateFormated && (
-                <p className="text-xs text-gray-500 mt-1">
-                  Filtering for: {(() => {
-                    const date = new Date(filters.dateFormated)
-                    const day = date.getDate()
-                    const month = date.getMonth() + 1
-                    const year = date.getFullYear()
-                    return `${day}/${month}/${year}`
-                  })()}
-                </p>
-              )}
             </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-6 gap-4 mt-4">
+            <div className="md:col-span-1">
+              <label className="text-sm font-medium mb-2 block">Date To</label>
+              <Input
+                type="date"
+                value={filters.dateTo}
+                onChange={(e) => setFilters((prev) => ({ ...prev, dateTo: e.target.value }))}
+                placeholder="End date"
+              />
+            </div>
+
+            {(filters.dateFrom || filters.dateTo) && (
+              <div className="md:col-span-5 flex items-end">
+                <p className="text-xs text-gray-500 mb-2">
+                  Date range: {filters.dateFrom ? new Date(filters.dateFrom).toLocaleDateString() : "Start"} to{" "}
+                  {filters.dateTo ? new Date(filters.dateTo).toLocaleDateString() : "End"}
+                </p>
+              </div>
+            )}
           </div>
 
           <div className="flex justify-between items-center mt-4">
@@ -659,7 +1067,15 @@ export default function TobaccoInventoryDashboard() {
               variant="outline"
               size="sm"
               onClick={() =>
-                setFilters({ farmerId: "", buyerId: "", dateFormated: "", search: "", tobaccoType: "", stationId: "" })
+                setFilters({
+                  farmerId: "",
+                  buyerId: "",
+                  dateFrom: "",
+                  dateTo: "",
+                  search: "",
+                  tobaccoType: "",
+                  stationId: "",
+                })
               }
             >
               Clear Filters
@@ -927,6 +1343,80 @@ export default function TobaccoInventoryDashboard() {
             >
               Next
             </Button>
+          </div>
+        </div>
+      )}
+
+      {/* Station Summary Modal */}
+      {showStationModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-96 max-w-md">
+            <h2 className="text-xl font-bold mb-4">Export Station Summary Report</h2>
+
+            <div className="space-y-4">
+              <div>
+                <label className="text-sm font-medium mb-2 block">Station ID (Optional)</label>
+                <Select
+                  value={stationReportFilters.stationId}
+                  onValueChange={(value) =>
+                    setStationReportFilters((prev) => ({ ...prev, stationId: value === "all" ? "" : value }))
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="All Stations" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Stations</SelectItem>
+                    {uniqueStationIds.map((station) => (
+                      <SelectItem key={station} value={station}>
+                        {station}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <label className="text-sm font-medium mb-2 block">Date From *</label>
+                <Input
+                  type="date"
+                  value={stationReportFilters.dateFrom}
+                  onChange={(e) => setStationReportFilters((prev) => ({ ...prev, dateFrom: e.target.value }))}
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="text-sm font-medium mb-2 block">Date To *</label>
+                <Input
+                  type="date"
+                  value={stationReportFilters.dateTo}
+                  onChange={(e) => setStationReportFilters((prev) => ({ ...prev, dateTo: e.target.value }))}
+                  required
+                />
+              </div>
+            </div>
+
+            <div className="flex gap-2 mt-6">
+              <Button
+                onClick={exportStationSummaryPDF}
+                className="flex-1"
+                disabled={!stationReportFilters.dateFrom || !stationReportFilters.dateTo}
+              >
+                <FileText className="h-4 w-4 mr-2" />
+                Export PDF
+              </Button>
+              <Button
+                onClick={() => {
+                  setShowStationModal(false)
+                  setStationReportFilters({ stationId: "", dateFrom: "", dateTo: "" })
+                }}
+                variant="outline"
+                className="flex-1"
+              >
+                Cancel
+              </Button>
+            </div>
           </div>
         </div>
       )}
