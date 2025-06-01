@@ -14,13 +14,55 @@ export interface BuyerReportFilters {
   dateFrom: string
   dateTo: string
   tobaccoType?: string
-  stationId?: string
+  buyerId?: string
 }
 
 export interface StationSummaryFilters {
   dateFrom: string
   dateTo: string
   tobaccoType?: string
+}
+
+// Add this new interface for date-based reports
+export interface DateBasedReportFilters {
+  dateFrom: string
+  dateTo: string
+  stationId?: string
+  tobaccoType?: string
+  reportType: 'daily' | 'monthly' | 'yearly'
+}
+
+// Helper function to format dates based on report type
+const formatDateForGrouping = (dateString: string, reportType: 'daily' | 'monthly' | 'yearly'): string => {
+  const date = parseDate(dateString)
+  if (!date) return dateString
+
+  switch (reportType) {
+    case 'daily':
+      return dateString // Keep original format
+    case 'monthly':
+      return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
+    case 'yearly':
+      return date.getFullYear().toString()
+    default:
+      return dateString
+  }
+}
+
+// Helper function to get display format for dates
+const getDisplayDate = (groupKey: string, reportType: 'daily' | 'monthly' | 'yearly'): string => {
+  switch (reportType) {
+    case 'daily':
+      return groupKey
+    case 'monthly':
+      const [year, month] = groupKey.split('-')
+      const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+      return `${monthNames[parseInt(month) - 1]} ${year}`
+    case 'yearly':
+      return groupKey
+    default:
+      return groupKey
+  }
 }
 
 export const exportToCSV = (data: InventoryItem[]) => {
@@ -436,6 +478,134 @@ export const exportSalesSummaryByStationPDF = (data: InventoryItem[], filters: S
   doc.save(`Sales_Summary_By_Station_${new Date().toISOString().split("T")[0]}.pdf`)
 }
 
+// 3. Sales Summary by Buyer
+export const exportSalesSummaryByBuyerPDF = (data: InventoryItem[], filters: BuyerReportFilters) => {
+  if (!filters.dateFrom || !filters.dateTo) {
+    alert("Please select both start and end dates.")
+    return
+  }
+
+  const filteredData = data.filter((item) => {
+    const price = Number.parseFloat(item.price || "0")
+    if (price <= 0) return false
+
+    const matchesBuyer = !filters.buyerId || item.buyerId === filters.buyerId
+    const matchesTobaccoType = !filters.tobaccoType || item.tobaccoType === filters.tobaccoType
+
+    const itemDate = parseDate(item.dateFormated)
+    if (!itemDate) return false
+
+    const fromDate = new Date(filters.dateFrom)
+    const toDate = new Date(filters.dateTo)
+    const matchesDateRange = itemDate >= fromDate && itemDate <= toDate
+
+    return matchesBuyer && matchesTobaccoType && matchesDateRange
+  })
+
+  if (filteredData.length === 0) {
+    alert("No records found for the selected criteria.")
+    return
+  }
+
+  // Group data by buyer
+  const buyerSummary = filteredData.reduce(
+    (acc, item) => {
+      const buyerId = item.buyerId
+
+      if (!acc[buyerId]) {
+        acc[buyerId] = {
+          buyerId,
+          barcodes: new Set(),
+          totalWeight: 0,
+          totalValue: 0,
+          priceSum: 0,
+          priceCount: 0,
+          stations: new Set(),
+        }
+      }
+
+      if (item.barcodeId) {
+        acc[buyerId].barcodes.add(item.barcodeId)
+      }
+
+      if (item.stationId) {
+        acc[buyerId].stations.add(item.stationId)
+      }
+
+      acc[buyerId].totalWeight += Number.parseFloat(item.weight || "0")
+
+      const price = Number.parseFloat(item.price)
+      const weight = Number.parseFloat(item.weight || "0")
+      acc[buyerId].totalValue += price * weight
+      acc[buyerId].priceSum += price
+      acc[buyerId].priceCount += 1
+
+      return acc
+    },
+    {} as Record<string, any>,
+  )
+
+  const buyerArray = Object.values(buyerSummary).map((buyer: any) => ({
+    ...buyer,
+    noOfBales: buyer.barcodes.size,
+    noOfStations: buyer.stations.size,
+    averagePrice: buyer.priceCount > 0 ? (buyer.priceSum / buyer.priceCount).toFixed(2) : "0.00",
+  }))
+
+  // Sort by total value descending
+  buyerArray.sort((a, b) => b.totalValue - a.totalValue)
+
+  const totals = buyerArray.reduce(
+    (acc, buyer) => ({
+      noOfBales: acc.noOfBales + buyer.noOfBales,
+      totalWeight: acc.totalWeight + buyer.totalWeight,
+      totalValue: acc.totalValue + buyer.totalValue,
+    }),
+    { noOfBales: 0, totalWeight: 0, totalValue: 0 },
+  )
+
+  const doc = new jsPDF()
+  let currentY = addCompanyHeader(doc, "Sales Summary by Buyer")
+
+  const reportInfo = {
+    "Period": `${new Date(filters.dateFrom).toLocaleDateString("en-GB")} to ${new Date(filters.dateTo).toLocaleDateString("en-GB")}`,
+    "Buyer": filters.buyerId || "ALL BUYERS",
+    "Tobacco Type": filters.tobaccoType || "ALL TYPES",
+    "Generated": `${new Date().toLocaleDateString("en-GB")} ${new Date().toLocaleTimeString("en-GB")}`,
+  }
+
+  currentY = addReportInfo(doc, currentY, reportInfo)
+
+  doc.setFontSize(8)
+  doc.setFont("helvetica", "italic")
+  doc.setTextColor(127, 140, 141)
+  doc.text("Note: Only records with valid prices (> $0) are included in this summary", doc.internal.pageSize.width / 2, currentY, { align: "center" })
+  currentY += 10
+
+  const tableData = buyerArray.map(buyer => [
+    buyer.buyerId,
+    buyer.noOfBales.toString(),
+    buyer.totalWeight.toFixed(2),
+    buyer.averagePrice,
+    buyer.totalValue.toFixed(2)
+  ])
+
+  tableData.push([
+    "GRAND TOTAL",
+    totals.noOfBales.toString(),
+    totals.totalWeight.toFixed(2),
+    "—",
+    totals.totalValue.toFixed(2)
+  ])
+
+  const headers = ["Buyer ID", "No. of Bales", "Weight (kg)", "Avg. Price ($)", "Total Value ($)"]
+  const columnWidths = [40, 30, 30, 30, 40]
+  
+  addSimpleTable(doc, headers, tableData, currentY, columnWidths)
+
+  doc.save(`Sales_Summary_By_Buyer_${new Date().toISOString().split("T")[0]}.pdf`)
+}
+
 // Keep the original functions for backward compatibility
 export const exportToPDF = (data: InventoryItem[], filters: Filters) => {
   const dateRangeFilters: DateRangeFilters = {
@@ -457,4 +627,141 @@ export const exportStationSummaryPDF = (data: InventoryItem[], filters: StationR
   }
   
   exportSalesSummaryByDatePDF(data, dateRangeFilters)
+}
+
+export const exportSalesSummaryByDateRangePDF = (data: InventoryItem[], filters: DateBasedReportFilters) => {
+  if (!filters.dateFrom || !filters.dateTo || !filters.reportType) {
+    alert("Please select date range and report type.")
+    return
+  }
+
+  const filteredData = data.filter((item) => {
+    const price = Number.parseFloat(item.price || "0")
+    if (price <= 0) return false
+
+    const matchesStation = !filters.stationId || item.stationId === filters.stationId
+    const matchesTobaccoType = !filters.tobaccoType || item.tobaccoType === filters.tobaccoType
+
+    const itemDate = parseDate(item.dateFormated)
+    if (!itemDate) return false
+
+    const fromDate = new Date(filters.dateFrom)
+    const toDate = new Date(filters.dateTo)
+    const matchesDateRange = itemDate >= fromDate && itemDate <= toDate
+
+    return matchesStation && matchesTobaccoType && matchesDateRange
+  })
+
+  if (filteredData.length === 0) {
+    alert("No records found for the selected criteria.")
+    return
+  }
+
+  // Group data by date based on report type
+  const summaryData = filteredData.reduce(
+    (acc, item) => {
+      const groupKey = formatDateForGrouping(item.dateFormated, filters.reportType)
+
+      if (!acc[groupKey]) {
+        acc[groupKey] = {
+          groupKey,
+          barcodes: new Set(),
+          totalWeight: 0,
+          totalValue: 0,
+          priceSum: 0,
+          priceCount: 0,
+        }
+      }
+
+      if (item.barcodeId) {
+        acc[groupKey].barcodes.add(item.barcodeId)
+      }
+
+      acc[groupKey].totalWeight += Number.parseFloat(item.weight || "0")
+
+      const price = Number.parseFloat(item.price)
+      const weight = Number.parseFloat(item.weight || "0")
+      acc[groupKey].totalValue += price * weight
+      acc[groupKey].priceSum += price
+      acc[groupKey].priceCount += 1
+
+      return acc
+    },
+    {} as Record<string, any>,
+  )
+
+  const summaryArray = Object.values(summaryData).map((item: any) => ({
+    ...item,
+    noOfBales: item.barcodes.size,
+    averagePrice: item.priceCount > 0 ? (item.priceSum / item.priceCount).toFixed(2) : "0.00",
+    displayDate: getDisplayDate(item.groupKey, filters.reportType),
+  }))
+
+  // Sort by group key
+  summaryArray.sort((a, b) => {
+    if (filters.reportType === 'yearly' || filters.reportType === 'monthly') {
+      return a.groupKey.localeCompare(b.groupKey)
+    } else {
+      const dateA = parseDate(a.groupKey)
+      const dateB = parseDate(b.groupKey)
+      if (!dateA || !dateB) return 0
+      return dateA.getTime() - dateB.getTime()
+    }
+  })
+
+  const totals = summaryArray.reduce(
+    (acc, item) => ({
+      noOfBales: acc.noOfBales + item.noOfBales,
+      totalWeight: acc.totalWeight + item.totalWeight,
+      totalValue: acc.totalValue + item.totalValue,
+    }),
+    { noOfBales: 0, totalWeight: 0, totalValue: 0 },
+  )
+
+  const doc = new jsPDF()
+  const reportTitle = `Sales Summary - ${filters.reportType.charAt(0).toUpperCase() + filters.reportType.slice(1)} Report`
+  let currentY = addCompanyHeader(doc, reportTitle)
+
+  const reportInfo = {
+    "Period": `${new Date(filters.dateFrom).toLocaleDateString("en-GB")} to ${new Date(filters.dateTo).toLocaleDateString("en-GB")}`,
+    "Grouping": filters.reportType.charAt(0).toUpperCase() + filters.reportType.slice(1),
+    "Station": filters.stationId || "ALL STATIONS",
+    "Tobacco Type": filters.tobaccoType || "ALL TYPES",
+    "Generated": `${new Date().toLocaleDateString("en-GB")} ${new Date().toLocaleTimeString("en-GB")}`,
+  }
+
+  currentY = addReportInfo(doc, currentY, reportInfo)
+
+  doc.setFontSize(8)
+  doc.setFont("helvetica", "italic")
+  doc.setTextColor(127, 140, 141)
+  doc.text("Note: Only records with valid prices (> $0) are included in this summary", doc.internal.pageSize.width / 2, currentY, { align: "center" })
+  currentY += 10
+
+  const tableData = summaryArray.map(item => [
+    item.displayDate,
+    item.noOfBales.toString(),
+    item.totalWeight.toFixed(2),
+    item.averagePrice,
+    item.totalValue.toFixed(2)
+  ])
+
+  tableData.push([
+    "GRAND TOTAL",
+    totals.noOfBales.toString(),
+    totals.totalWeight.toFixed(2),
+    "—",
+    totals.totalValue.toFixed(2)
+  ])
+
+  const periodLabel = filters.reportType === 'daily' ? 'Date' : 
+                     filters.reportType === 'monthly' ? 'Month' : 'Year'
+  
+  const headers = [periodLabel, "No. of Bales", "Weight (kg)", "Avg. Price ($)", "Total Value ($)"]
+  const columnWidths = [40, 30, 30, 30, 40]
+  
+  addSimpleTable(doc, headers, tableData, currentY, columnWidths)
+
+  const filename = `Sales_Summary_${filters.reportType}_${new Date().toISOString().split("T")[0]}.pdf`
+  doc.save(filename)
 }

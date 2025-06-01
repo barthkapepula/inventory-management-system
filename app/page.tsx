@@ -14,19 +14,25 @@ import {
   exportToCSV,
   exportSalesSummaryByDatePDF,
   exportSalesSummaryByStationPDF,
+  exportSalesSummaryByBuyerPDF,
+  exportSalesSummaryByDateRangePDF,
   type DateRangeFilters,
   type StationSummaryFilters,
   type StationReportFilters,
+  type BuyerReportFilters,
+  type DateBasedReportFilters,
   type VisibleColumns
 } from "./components/inventory"
 import { SalesDateModal } from "./components/inventory/sales-date-modal"
 import { StationSummaryModal } from "./components/inventory/station-summary-modal"
+import { BuyerModal } from "./components/inventory/buyer-modal"
 
 interface SalesDateReportFilters {
   dateFrom: string
   dateTo: string
   tobaccoType: string
   stationId: string
+  reportType: string
 }
 
 export default function InventoryPage() {
@@ -77,11 +83,19 @@ export default function InventoryPage() {
     dateTo: "",
   })
 
+  const [buyerReportFilters, setBuyerReportFilters] = useState<BuyerReportFilters>({
+    buyerId: "",
+    tobaccoType: "",
+    dateFrom: "",
+    dateTo: "",
+  })
+
   const [salesDateFilters, setSalesDateFilters] = useState<SalesDateReportFilters>({
     dateFrom: "",
     dateTo: "",
     tobaccoType: "",
     stationId: "",
+    reportType: "daily",
   })
 
   const [stationSummaryFilters, setStationSummaryFilters] = useState<StationSummaryFilters>({
@@ -133,19 +147,25 @@ export default function InventoryPage() {
   }
 
   const handleSalesDateExport = () => {
-    const dateRangeFilters: DateRangeFilters = {
+    const dateBasedFilters: DateBasedReportFilters = {
       dateFrom: salesDateFilters.dateFrom,
       dateTo: salesDateFilters.dateTo,
       stationId: salesDateFilters.stationId,
-      tobaccoType: salesDateFilters.tobaccoType
+      tobaccoType: salesDateFilters.tobaccoType,
+      reportType: salesDateFilters.reportType as 'daily' | 'monthly' | 'yearly'
     }
-    exportSalesSummaryByDatePDF(filteredData, dateRangeFilters)
+    exportSalesSummaryByDateRangePDF(data, dateBasedFilters)
     setIsSalesDateModalOpen(false)
   }
 
   const handleStationSummaryExport = () => {
     exportSalesSummaryByStationPDF(filteredData, stationSummaryFilters)
     setIsStationSummaryModalOpen(false)
+  }
+
+  const handleBuyerExport = () => {
+    exportSalesSummaryByBuyerPDF(data, buyerReportFilters)
+    setIsBuyerModalOpen(false)
   }
 
   if (loading) return <LoadingSpinner />
@@ -203,6 +223,16 @@ export default function InventoryPage() {
             setIsStationModalOpen(false)
           }}
           uniqueStationIds={uniqueStationIds}
+        />
+
+        <BuyerModal
+          isOpen={isBuyerModalOpen}
+          onClose={() => setIsBuyerModalOpen(false)}
+          filters={buyerReportFilters}
+          setFilters={setBuyerReportFilters}
+          onExport={handleBuyerExport}
+          uniqueBuyerIds={uniqueBuyerIds}
+          uniqueTobaccoTypes={uniqueTobaccoTypes}
         />
 
         <SalesDateModal

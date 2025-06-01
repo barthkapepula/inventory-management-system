@@ -10,6 +10,7 @@ interface SalesDateReportFilters {
   dateTo: string
   tobaccoType: string
   stationId: string
+  reportType: string // New field for report type
 }
 
 interface SalesDateModalProps {
@@ -35,15 +36,64 @@ export function SalesDateModal({
 
   const handleClose = () => {
     onClose()
-    setFilters({ dateFrom: "", dateTo: "", tobaccoType: "", stationId: "" })
+    setFilters({ 
+      dateFrom: "", 
+      dateTo: "", 
+      tobaccoType: "", 
+      stationId: "",
+      reportType: "daily" 
+    })
+  }
+
+  const getReportDescription = () => {
+    switch (filters.reportType) {
+      case "daily":
+        return "This report will show daily sales summaries for the selected station and date range, including total bales, weight, and value per day."
+      case "monthly":
+        return "This report will show monthly sales summaries for the selected station and date range, including total bales, weight, and value per month."
+      case "yearly":
+        return "This report will show yearly sales summaries for the selected station and date range, including total bales, weight, and value per year."
+      default:
+        return "This report will show sales summaries for the selected criteria."
+    }
+  }
+
+  const getReportTitle = () => {
+    switch (filters.reportType) {
+      case "daily":
+        return "Export Daily Sales Summary"
+      case "monthly":
+        return "Export Monthly Sales Summary"
+      case "yearly":
+        return "Export Yearly Sales Summary"
+      default:
+        return "Export Sales Summary by Date Range"
+    }
   }
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-lg p-4 sm:p-6 w-full max-w-md">
-        <h2 className="text-lg sm:text-xl font-bold mb-4">Export Sales Summary by Date Range</h2>
+        <h2 className="text-lg sm:text-xl font-bold mb-4">{getReportTitle()}</h2>
 
         <div className="space-y-4">
+          <div>
+            <label className="text-sm font-medium mb-2 block">Report Type *</label>
+            <Select
+              value={filters.reportType}
+              onValueChange={(value) => setFilters({ ...filters, reportType: value })}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select Report Type" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="daily">Daily Summary</SelectItem>
+                <SelectItem value="monthly">Monthly Summary</SelectItem>
+                <SelectItem value="yearly">Yearly Summary</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
           <div>
             <label className="text-sm font-medium mb-2 block">Date From *</label>
             <Input
@@ -85,15 +135,16 @@ export function SalesDateModal({
           </div>
 
           <div>
-            <label className="text-sm font-medium mb-2 block">Station ID *</label>
+            <label className="text-sm font-medium mb-2 block">Station ID (Optional)</label>
             <Select
               value={filters.stationId}
               onValueChange={(value) => setFilters({ ...filters, stationId: value === "all" ? "" : value })}
             >
               <SelectTrigger>
-                <SelectValue placeholder="Select Station" />
+                <SelectValue placeholder="All Stations" />
               </SelectTrigger>
               <SelectContent>
+                <SelectItem value="all">All Stations</SelectItem>
                 {uniqueStationIds.map((station) => (
                   <SelectItem key={station} value={station}>
                     {station}
@@ -104,8 +155,7 @@ export function SalesDateModal({
           </div>
 
           <div className="text-sm text-gray-600 bg-blue-50 p-3 rounded-md">
-            <strong>Note:</strong> This report will show daily sales summaries for the selected station and date range,
-            including total bales, weight, and value per day.
+            <strong>Note:</strong> {getReportDescription()}
           </div>
         </div>
 
@@ -113,7 +163,7 @@ export function SalesDateModal({
           <Button
             onClick={onExport}
             className="flex-1"
-            disabled={!filters.dateFrom || !filters.dateTo || !filters.stationId}
+            disabled={!filters.dateFrom || !filters.dateTo || !filters.reportType}
           >
             <FileText className="h-4 w-4 mr-2" />
             Export PDF

@@ -68,7 +68,7 @@ export interface SalesDateReportFilters {
 export interface StationSummaryFilters {
   dateFrom: string
   dateTo: string
-  tobaccoType: string
+  tobaccoType?: string
 }
 
 export interface DateRangeFilters {

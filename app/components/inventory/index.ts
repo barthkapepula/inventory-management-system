@@ -13,6 +13,9 @@ export * from "./ErrorDisplay"
 export * from "./sales-date-modal"
 export * from "./station-summary-modal"
 export * from "./export-popover"
-
-// Export the new filter types for external use
-export type { DateRangeFilters, BuyerReportFilters } from "./exportUtils"
+export { 
+  exportSalesSummaryByBuyerPDF,
+  exportSalesSummaryByDateRangePDF,
+  type BuyerReportFilters,
+  type DateBasedReportFilters 
+} from "./exportUtils"

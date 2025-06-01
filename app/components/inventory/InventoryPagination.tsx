@@ -6,6 +6,7 @@ interface InventoryPaginationProps {
   totalItems: number
   itemsPerPage: number
   onPageChange: (page: number) => void
+  onItemsPerPageChange: (itemsPerPage: number) => void
 }
 
 export function InventoryPagination({
