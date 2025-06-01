@@ -10,3 +10,6 @@ export * from "./InventoryPagination"
 export * from "./StationModal"
 export * from "./LoadingSpinner"
 export * from "./ErrorDisplay"
+
+// Export the new filter types for external use
+export type { DateRangeFilters, BuyerReportFilters } from "./exportUtils"

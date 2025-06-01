@@ -11,6 +11,7 @@ export function InventoryHeader({ onExportCSV, onExportPDF, onShowStationModal }
   return (
     <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
       <div>
+        <h2 className="text-xl font-semibold text-gray-700">EASTERN TOBACCO ASSOCIATION</h2>
         <h1 className="text-3xl font-bold text-gray-900">Tobacco Inventory Management</h1>
         <p className="text-gray-600">Manage and track tobacco inventory records</p>
       </div>
