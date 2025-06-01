@@ -50,3 +50,37 @@ export interface StationReportFilters {
   dateFrom: string
   dateTo: string
 }
+
+export interface BuyerReportFilters {
+  buyerId: string
+  tobaccoType: string
+  dateFrom: string
+  dateTo: string
+}
+
+export interface SalesDateReportFilters {
+  dateFrom: string
+  dateTo: string
+  tobaccoType: string
+  stationId: string
+}
+
+export interface StationSummaryFilters {
+  dateFrom: string
+  dateTo: string
+  tobaccoType: string
+}
+
+export interface DateRangeFilters {
+  dateFrom: string
+  dateTo: string
+  stationId?: string
+  tobaccoType?: string
+}
+
+export interface Stats {
+  totalItems: number
+  totalWeight: number
+  totalValue: number
+  averagePrice: number
+}

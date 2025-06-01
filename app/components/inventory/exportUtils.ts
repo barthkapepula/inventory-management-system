@@ -2,6 +2,7 @@ import { InventoryItem, Filters, StationReportFilters } from "./types"
 import { parseDate } from "./utils"
 import jsPDF from "jspdf"
 
+// Extended filter types for new reports
 export interface DateRangeFilters {
   dateFrom: string
   dateTo: string
@@ -14,6 +15,12 @@ export interface BuyerReportFilters {
   dateTo: string
   tobaccoType?: string
   stationId?: string
+}
+
+export interface StationSummaryFilters {
+  dateFrom: string
+  dateTo: string
+  tobaccoType?: string
 }
 
 export const exportToCSV = (data: InventoryItem[]) => {
@@ -74,30 +81,26 @@ export const exportToCSV = (data: InventoryItem[]) => {
 
 // Helper function to add company header
 const addCompanyHeader = (doc: jsPDF, reportTitle: string) => {
-  // Company name
   doc.setFontSize(18)
   doc.setFont("helvetica", "bold")
-  doc.setTextColor(44, 62, 80) // Dark blue
+  doc.setTextColor(44, 62, 80)
   doc.text("EASTERN TOBACCO ASSOCIATION", doc.internal.pageSize.width / 2, 20, { align: "center" })
 
-  // Subtitle
   doc.setFontSize(10)
   doc.setFont("helvetica", "normal")
-  doc.setTextColor(127, 140, 141) // Gray
+  doc.setTextColor(127, 140, 141)
   doc.text("Tobacco Inventory Management System", doc.internal.pageSize.width / 2, 28, { align: "center" })
 
-  // Report title
   doc.setFontSize(14)
   doc.setFont("helvetica", "bold")
   doc.setTextColor(44, 62, 80)
   doc.text(reportTitle.toUpperCase(), doc.internal.pageSize.width / 2, 40, { align: "center" })
 
-  // Line separator
   doc.setDrawColor(52, 73, 94)
   doc.setLineWidth(0.5)
   doc.line(20, 45, doc.internal.pageSize.width - 20, 45)
 
-  return 55 // Return Y position for next content
+  return 55
 }
 
 // Helper function to add report info
@@ -145,7 +148,6 @@ const addSimpleTable = (
     currentX += columnWidths[index]
   })
   
-  // Draw header border
   doc.setDrawColor(189, 195, 199)
   doc.rect(startX, currentY, pageWidth - 40, rowHeight)
   
@@ -157,13 +159,11 @@ const addSimpleTable = (
   doc.setFontSize(8)
 
   data.forEach((row, rowIndex) => {
-    // Alternate row colors
     if (rowIndex % 2 === 0) {
       doc.setFillColor(248, 249, 250)
       doc.rect(startX, currentY, pageWidth - 40, rowHeight, 'F')
     }
 
-    // Check if this is the totals row (last row)
     const isTotalsRow = rowIndex === data.length - 1 && row[0].includes("TOTAL")
     if (isTotalsRow) {
       doc.setFillColor(213, 219, 219)
@@ -181,7 +181,6 @@ const addSimpleTable = (
       currentX += columnWidths[cellIndex]
     })
 
-    // Draw row border
     doc.setDrawColor(189, 195, 199)
     doc.rect(startX, currentY, pageWidth - 40, rowHeight)
 
@@ -195,7 +194,7 @@ const addSimpleTable = (
   return currentY + 10
 }
 
-// 1. Sales Summary by Date
+// 1. Sales Summary by Date Range
 export const exportSalesSummaryByDatePDF = (data: InventoryItem[], filters: DateRangeFilters) => {
   if (!filters.dateFrom || !filters.dateTo) {
     alert("Please select both start and end dates.")
@@ -263,7 +262,6 @@ export const exportSalesSummaryByDatePDF = (data: InventoryItem[], filters: Date
     averagePrice: item.priceCount > 0 ? (item.priceSum / item.priceCount).toFixed(2) : "0.00",
   }))
 
-  // Sort by date
   summaryArray.sort((a, b) => {
     const dateA = parseDate(a.date)
     const dateB = parseDate(b.date)
@@ -280,11 +278,9 @@ export const exportSalesSummaryByDatePDF = (data: InventoryItem[], filters: Date
     { noOfBales: 0, totalWeight: 0, totalValue: 0 },
   )
 
-  // Create PDF
   const doc = new jsPDF()
-  let currentY = addCompanyHeader(doc, "Sales Summary by Date")
+  let currentY = addCompanyHeader(doc, "Sales Summary by Date Range")
 
-  // Add report info
   const reportInfo = {
     "Period": `${new Date(filters.dateFrom).toLocaleDateString("en-GB")} to ${new Date(filters.dateTo).toLocaleDateString("en-GB")}`,
     "Station": filters.stationId || "ALL STATIONS",
@@ -294,14 +290,12 @@ export const exportSalesSummaryByDatePDF = (data: InventoryItem[], filters: Date
 
   currentY = addReportInfo(doc, currentY, reportInfo)
 
-  // Add note
   doc.setFontSize(8)
   doc.setFont("helvetica", "italic")
   doc.setTextColor(127, 140, 141)
   doc.text("Note: Only records with valid prices (> $0) are included in this summary", doc.internal.pageSize.width / 2, currentY, { align: "center" })
   currentY += 10
 
-  // Prepare table data
   const tableData = summaryArray.map(item => [
     item.date,
     item.noOfBales.toString(),
@@ -310,7 +304,6 @@ export const exportSalesSummaryByDatePDF = (data: InventoryItem[], filters: Date
     item.totalValue.toFixed(2)
   ])
 
-  // Add totals row
   tableData.push([
     "GRAND TOTAL",
     totals.noOfBales.toString(),
@@ -319,13 +312,128 @@ export const exportSalesSummaryByDatePDF = (data: InventoryItem[], filters: Date
     totals.totalValue.toFixed(2)
   ])
 
-  // Create table
   const headers = ["Date", "No. of Bales", "Weight (kg)", "Avg. Price ($)", "Total Value ($)"]
   const columnWidths = [40, 30, 30, 30, 40]
   
   addSimpleTable(doc, headers, tableData, currentY, columnWidths)
 
   doc.save(`Sales_Summary_By_Date_${new Date().toISOString().split("T")[0]}.pdf`)
+}
+
+// 2. Sales Summary by Station
+export const exportSalesSummaryByStationPDF = (data: InventoryItem[], filters: StationSummaryFilters) => {
+  if (!filters.dateFrom || !filters.dateTo) {
+    alert("Please select both start and end dates.")
+    return
+  }
+
+  const filteredData = data.filter((item) => {
+    const price = Number.parseFloat(item.price || "0")
+    if (price <= 0) return false
+
+    const matchesTobaccoType = !filters.tobaccoType || item.tobaccoType === filters.tobaccoType
+
+    const itemDate = parseDate(item.dateFormated)
+    if (!itemDate) return false
+
+    const fromDate = new Date(filters.dateFrom)
+    const toDate = new Date(filters.dateTo)
+    const matchesDateRange = itemDate >= fromDate && itemDate <= toDate
+
+    return matchesTobaccoType && matchesDateRange
+  })
+
+  if (filteredData.length === 0) {
+    alert("No records found for the selected criteria.")
+    return
+  }
+
+  const stationSummary = filteredData.reduce(
+    (acc, item) => {
+      const stationId = item.stationId
+
+      if (!acc[stationId]) {
+        acc[stationId] = {
+          stationId,
+          barcodes: new Set(),
+          totalWeight: 0,
+          totalValue: 0,
+          priceSum: 0,
+          priceCount: 0,
+        }
+      }
+
+      if (item.barcodeId) {
+        acc[stationId].barcodes.add(item.barcodeId)
+      }
+
+      acc[stationId].totalWeight += Number.parseFloat(item.weight || "0")
+
+      const price = Number.parseFloat(item.price)
+      const weight = Number.parseFloat(item.weight || "0")
+      acc[stationId].totalValue += price * weight
+      acc[stationId].priceSum += price
+      acc[stationId].priceCount += 1
+
+      return acc
+    },
+    {} as Record<string, any>,
+  )
+
+  const stationArray = Object.values(stationSummary).map((station: any) => ({
+    ...station,
+    noOfBales: station.barcodes.size,
+    averagePrice: station.priceCount > 0 ? (station.priceSum / station.priceCount).toFixed(2) : "0.00",
+  }))
+
+  const totals = stationArray.reduce(
+    (acc, station) => ({
+      noOfBales: acc.noOfBales + station.noOfBales,
+      totalWeight: acc.totalWeight + station.totalWeight,
+      totalValue: acc.totalValue + station.totalValue,
+    }),
+    { noOfBales: 0, totalWeight: 0, totalValue: 0 },
+  )
+
+  const doc = new jsPDF()
+  let currentY = addCompanyHeader(doc, "Sales Summary by Station")
+
+  const reportInfo = {
+    "Period": `${new Date(filters.dateFrom).toLocaleDateString("en-GB")} to ${new Date(filters.dateTo).toLocaleDateString("en-GB")}`,
+    "Tobacco Type": filters.tobaccoType || "ALL TYPES",
+    "Generated": `${new Date().toLocaleDateString("en-GB")} ${new Date().toLocaleTimeString("en-GB")}`,
+  }
+
+  currentY = addReportInfo(doc, currentY, reportInfo)
+
+  doc.setFontSize(8)
+  doc.setFont("helvetica", "italic")
+  doc.setTextColor(127, 140, 141)
+  doc.text("Note: Only records with valid prices (> $0) are included in this summary", doc.internal.pageSize.width / 2, currentY, { align: "center" })
+  currentY += 10
+
+  const tableData = stationArray.map(station => [
+    station.stationId,
+    station.noOfBales.toString(),
+    station.totalWeight.toFixed(2),
+    station.averagePrice,
+    station.totalValue.toFixed(2)
+  ])
+
+  tableData.push([
+    "GRAND TOTAL",
+    totals.noOfBales.toString(),
+    totals.totalWeight.toFixed(2),
+    "—",
+    totals.totalValue.toFixed(2)
+  ])
+
+  const headers = ["Station ID", "No. of Bales", "Weight (kg)", "Avg. Price ($)", "Total Value ($)"]
+  const columnWidths = [40, 30, 30, 30, 40]
+  
+  addSimpleTable(doc, headers, tableData, currentY, columnWidths)
+
+  doc.save(`Sales_Summary_By_Station_${new Date().toISOString().split("T")[0]}.pdf`)
 }
 
 // Keep the original functions for backward compatibility

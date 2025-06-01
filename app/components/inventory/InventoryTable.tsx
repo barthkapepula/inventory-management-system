@@ -7,12 +7,17 @@ import { hasMissingData } from "./utils"
 
 interface InventoryTableProps {
   data: InventoryItem[]
-  sortConfig: SortConfig
-  onSort: (key: keyof InventoryItem) => void
+  sortConfig?: SortConfig
+  onSort?: (key: keyof InventoryItem) => void
   visibleColumns: VisibleColumns
 }
 
-export function InventoryTable({ data, sortConfig, onSort, visibleColumns }: InventoryTableProps) {
+export function InventoryTable({ 
+  data, 
+  sortConfig = { key: null, direction: "asc" }, 
+  onSort = () => {}, 
+  visibleColumns 
+}: InventoryTableProps) {
   const renderSortableHeader = (key: keyof InventoryItem, label: string) => (
     <TableHead className="cursor-pointer hover:bg-gray-50" onClick={() => onSort(key)}>
       <div className="flex items-center gap-1">
