@@ -1,0 +1,173 @@
+"use client"
+
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { FileText } from "lucide-react"
+<<<<<<< HEAD:app/components/inventory/buyer-modal.tsx
+import { BuyerReportFilters } from "./types"
+=======
+
+interface BuyerReportFilters {
+  buyerId: string
+  tobaccoType: string
+  dateFrom: string
+  dateTo: string
+}
+>>>>>>> 4a9719d20eb78a722b80fb90d1da0085717b8085:components/inventory/buyer-modal.tsx
+
+interface BuyerModalProps {
+  isOpen: boolean
+  onClose: () => void
+  filters: BuyerReportFilters
+  setFilters: (filters: BuyerReportFilters) => void
+  onExport: () => void
+<<<<<<< HEAD:app/components/inventory/buyer-modal.tsx
+  uniqueTobaccoTypes: string[]
+  uniqueStationIds: string[]
+=======
+  uniqueBuyerIds: string[]
+  uniqueTobaccoTypes: string[]
+>>>>>>> 4a9719d20eb78a722b80fb90d1da0085717b8085:components/inventory/buyer-modal.tsx
+}
+
+export function BuyerModal({
+  isOpen,
+  onClose,
+  filters,
+  setFilters,
+  onExport,
+<<<<<<< HEAD:app/components/inventory/buyer-modal.tsx
+  uniqueTobaccoTypes,
+  uniqueStationIds,
+=======
+  uniqueBuyerIds,
+  uniqueTobaccoTypes,
+>>>>>>> 4a9719d20eb78a722b80fb90d1da0085717b8085:components/inventory/buyer-modal.tsx
+}: BuyerModalProps) {
+  if (!isOpen) return null
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-lg p-4 sm:p-6 w-full max-w-md">
+<<<<<<< HEAD:app/components/inventory/buyer-modal.tsx
+        <h2 className="text-lg sm:text-xl font-bold mb-4">Export All Buyers Summary Report</h2>
+
+        <div className="space-y-4">
+          <div>
+            <label className="text-sm font-medium mb-2 block">Station ID (Optional)</label>
+            <Select
+              value={filters.stationId || ""}
+              onValueChange={(value) => setFilters({ ...filters, stationId: value === "all" ? undefined : value })}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="All Stations" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Stations</SelectItem>
+                {uniqueStationIds.map((station) => (
+                  <SelectItem key={station} value={station}>
+                    {station}
+=======
+        <h2 className="text-lg sm:text-xl font-bold mb-4">Export Buyer Summary Report</h2>
+
+        <div className="space-y-4">
+          <div>
+            <label className="text-sm font-medium mb-2 block">Buyer ID (Optional)</label>
+            <Select
+              value={filters.buyerId}
+              onValueChange={(value) => setFilters({ ...filters, buyerId: value === "all" ? "" : value })}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="All Buyers" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Buyers</SelectItem>
+                {uniqueBuyerIds.map((buyer) => (
+                  <SelectItem key={buyer} value={buyer}>
+                    {buyer}
+>>>>>>> 4a9719d20eb78a722b80fb90d1da0085717b8085:components/inventory/buyer-modal.tsx
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div>
+            <label className="text-sm font-medium mb-2 block">Tobacco Type (Optional)</label>
+            <Select
+<<<<<<< HEAD:app/components/inventory/buyer-modal.tsx
+              value={filters.tobaccoType || ""}
+              onValueChange={(value) => setFilters({ ...filters, tobaccoType: value === "all" ? undefined : value })}
+=======
+              value={filters.tobaccoType}
+              onValueChange={(value) => setFilters({ ...filters, tobaccoType: value === "all" ? "" : value })}
+>>>>>>> 4a9719d20eb78a722b80fb90d1da0085717b8085:components/inventory/buyer-modal.tsx
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="All Types" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Types</SelectItem>
+                {uniqueTobaccoTypes.map((type) => (
+                  <SelectItem key={type} value={type}>
+                    {type}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div>
+            <label className="text-sm font-medium mb-2 block">Date From *</label>
+            <Input
+              type="date"
+              value={filters.dateFrom}
+              onChange={(e) => setFilters({ ...filters, dateFrom: e.target.value })}
+              required
+            />
+          </div>
+
+          <div>
+            <label className="text-sm font-medium mb-2 block">Date To *</label>
+            <Input
+              type="date"
+              value={filters.dateTo}
+              onChange={(e) => setFilters({ ...filters, dateTo: e.target.value })}
+              required
+            />
+          </div>
+<<<<<<< HEAD:app/components/inventory/buyer-modal.tsx
+
+          <div className="text-sm text-gray-600 bg-blue-50 p-3 rounded-md">
+            <strong>Note:</strong> This report will show a summary of all buyers' activities for the selected date range and filters,
+            including total bales, weight, and value per buyer.
+          </div>
+=======
+>>>>>>> 4a9719d20eb78a722b80fb90d1da0085717b8085:components/inventory/buyer-modal.tsx
+        </div>
+
+        <div className="flex flex-col sm:flex-row gap-2 mt-6">
+          <Button onClick={onExport} className="flex-1" disabled={!filters.dateFrom || !filters.dateTo}>
+            <FileText className="h-4 w-4 mr-2" />
+            Export PDF
+          </Button>
+          <Button
+            onClick={() => {
+              onClose()
+<<<<<<< HEAD:app/components/inventory/buyer-modal.tsx
+              setFilters({ stationId: undefined, tobaccoType: undefined, dateFrom: "", dateTo: "" })
+=======
+              setFilters({ buyerId: "", tobaccoType: "", dateFrom: "", dateTo: "" })
+>>>>>>> 4a9719d20eb78a722b80fb90d1da0085717b8085:components/inventory/buyer-modal.tsx
+            }}
+            variant="outline"
+            className="flex-1"
+          >
+            Cancel
+          </Button>
+        </div>
+      </div>
+    </div>
+  )
+}
