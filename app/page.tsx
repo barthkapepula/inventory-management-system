@@ -46,7 +46,6 @@ export default function InventoryPage() {
     setCurrentPage,
     totalPages,
     paginatedData,
-    stats,
     uniqueFarmerIds,
     uniqueBuyerIds,
     uniqueTobaccoTypes,
@@ -84,17 +83,17 @@ export default function InventoryPage() {
   })
 
   const [buyerReportFilters, setBuyerReportFilters] = useState<BuyerReportFilters>({
-    buyerId: "",
-    tobaccoType: "",
+    stationId: undefined,
+    tobaccoType: undefined,
     dateFrom: "",
     dateTo: "",
   })
 
-  const [salesDateFilters, setSalesDateFilters] = useState<SalesDateReportFilters>({
+  const [salesDateFilters, setSalesDateFilters] = useState<DateBasedReportFilters>({
     dateFrom: "",
     dateTo: "",
-    tobaccoType: "",
-    stationId: "",
+    tobaccoType: undefined,
+    stationId: undefined,
     reportType: "daily",
   })
 
@@ -130,6 +129,9 @@ export default function InventoryPage() {
 
     return matchesFarmerId && matchesBuyerId && matchesTobaccoType && matchesStationId && matchesSearch && matchesDateRange
   })
+
+  // Calculate unique farmers count from filtered data
+  const uniqueFarmersInFilteredData = new Set(filteredData.map(item => item.farmerId)).size
 
   // Export functions
   const handleExportToExcel = () => {
@@ -183,7 +185,11 @@ export default function InventoryPage() {
           openStationSummaryModal={() => setIsStationSummaryModalOpen(true)}
         />
 
-        <StatsCards stats={stats} />
+        <StatsCards 
+          data={data}
+          filteredCount={filteredData.length}
+          uniqueFarmersCount={uniqueFarmersInFilteredData}
+        />
 
         <InventoryFilters
           filters={filters}
@@ -231,8 +237,8 @@ export default function InventoryPage() {
           filters={buyerReportFilters}
           setFilters={setBuyerReportFilters}
           onExport={handleBuyerExport}
-          uniqueBuyerIds={uniqueBuyerIds}
           uniqueTobaccoTypes={uniqueTobaccoTypes}
+          uniqueStationIds={uniqueStationIds}
         />
 
         <SalesDateModal

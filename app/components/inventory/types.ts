@@ -51,18 +51,19 @@ export interface StationReportFilters {
   dateTo: string
 }
 
-export interface BuyerReportFilters {
-  buyerId: string
-  tobaccoType: string
+// Export filter interfaces for reports
+export interface DateRangeFilters {
   dateFrom: string
   dateTo: string
+  stationId?: string
+  tobaccoType?: string
 }
 
-export interface SalesDateReportFilters {
+export interface BuyerReportFilters {
   dateFrom: string
   dateTo: string
-  tobaccoType: string
-  stationId: string
+  tobaccoType?: string
+  stationId?: string
 }
 
 export interface StationSummaryFilters {
@@ -71,11 +72,12 @@ export interface StationSummaryFilters {
   tobaccoType?: string
 }
 
-export interface DateRangeFilters {
+export interface DateBasedReportFilters {
   dateFrom: string
   dateTo: string
   stationId?: string
   tobaccoType?: string
+  reportType: 'daily' | 'monthly' | 'yearly'
 }
 
 export interface Stats {

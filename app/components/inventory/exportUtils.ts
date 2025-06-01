@@ -1,36 +1,14 @@
-import { InventoryItem, Filters, StationReportFilters } from "./types"
+import { 
+  InventoryItem, 
+  Filters, 
+  StationReportFilters,
+  DateRangeFilters,
+  BuyerReportFilters,
+  StationSummaryFilters,
+  DateBasedReportFilters
+} from "./types"
 import { parseDate } from "./utils"
 import jsPDF from "jspdf"
-
-// Extended filter types for new reports
-export interface DateRangeFilters {
-  dateFrom: string
-  dateTo: string
-  stationId?: string
-  tobaccoType?: string
-}
-
-export interface BuyerReportFilters {
-  dateFrom: string
-  dateTo: string
-  tobaccoType?: string
-  buyerId?: string
-}
-
-export interface StationSummaryFilters {
-  dateFrom: string
-  dateTo: string
-  tobaccoType?: string
-}
-
-// Add this new interface for date-based reports
-export interface DateBasedReportFilters {
-  dateFrom: string
-  dateTo: string
-  stationId?: string
-  tobaccoType?: string
-  reportType: 'daily' | 'monthly' | 'yearly'
-}
 
 // Helper function to format dates based on report type
 const formatDateForGrouping = (dateString: string, reportType: 'daily' | 'monthly' | 'yearly'): string => {
@@ -478,7 +456,7 @@ export const exportSalesSummaryByStationPDF = (data: InventoryItem[], filters: S
   doc.save(`Sales_Summary_By_Station_${new Date().toISOString().split("T")[0]}.pdf`)
 }
 
-// 3. Sales Summary by Buyer
+// 3. Sales Summary by Buyer (All Buyers)
 export const exportSalesSummaryByBuyerPDF = (data: InventoryItem[], filters: BuyerReportFilters) => {
   if (!filters.dateFrom || !filters.dateTo) {
     alert("Please select both start and end dates.")
@@ -489,7 +467,7 @@ export const exportSalesSummaryByBuyerPDF = (data: InventoryItem[], filters: Buy
     const price = Number.parseFloat(item.price || "0")
     if (price <= 0) return false
 
-    const matchesBuyer = !filters.buyerId || item.buyerId === filters.buyerId
+    const matchesStation = !filters.stationId || item.stationId === filters.stationId
     const matchesTobaccoType = !filters.tobaccoType || item.tobaccoType === filters.tobaccoType
 
     const itemDate = parseDate(item.dateFormated)
@@ -499,7 +477,7 @@ export const exportSalesSummaryByBuyerPDF = (data: InventoryItem[], filters: Buy
     const toDate = new Date(filters.dateTo)
     const matchesDateRange = itemDate >= fromDate && itemDate <= toDate
 
-    return matchesBuyer && matchesTobaccoType && matchesDateRange
+    return matchesStation && matchesTobaccoType && matchesDateRange
   })
 
   if (filteredData.length === 0) {
@@ -560,17 +538,26 @@ export const exportSalesSummaryByBuyerPDF = (data: InventoryItem[], filters: Buy
       noOfBales: acc.noOfBales + buyer.noOfBales,
       totalWeight: acc.totalWeight + buyer.totalWeight,
       totalValue: acc.totalValue + buyer.totalValue,
+      uniqueStations: new Set(),
     }),
-    { noOfBales: 0, totalWeight: 0, totalValue: 0 },
+    { noOfBales: 0, totalWeight: 0, totalValue: 0, uniqueStations: new Set() },
   )
 
+  // Calculate total unique stations across all buyers
+  const allStations = new Set()
+  buyerArray.forEach(buyer => {
+    buyer.stations.forEach((station: string) => allStations.add(station))
+  })
+
   const doc = new jsPDF()
-  let currentY = addCompanyHeader(doc, "Sales Summary by Buyer")
+  let currentY = addCompanyHeader(doc, "All Buyers Summary Report")
 
   const reportInfo = {
     "Period": `${new Date(filters.dateFrom).toLocaleDateString("en-GB")} to ${new Date(filters.dateTo).toLocaleDateString("en-GB")}`,
-    "Buyer": filters.buyerId || "ALL BUYERS",
+    "Station Filter": filters.stationId || "ALL STATIONS",
     "Tobacco Type": filters.tobaccoType || "ALL TYPES",
+    "Total Buyers": buyerArray.length.toString(),
+    "Total Stations": allStations.size.toString(),
     "Generated": `${new Date().toLocaleDateString("en-GB")} ${new Date().toLocaleTimeString("en-GB")}`,
   }
 
@@ -579,13 +566,14 @@ export const exportSalesSummaryByBuyerPDF = (data: InventoryItem[], filters: Buy
   doc.setFontSize(8)
   doc.setFont("helvetica", "italic")
   doc.setTextColor(127, 140, 141)
-  doc.text("Note: Only records with valid prices (> $0) are included in this summary", doc.internal.pageSize.width / 2, currentY, { align: "center" })
+  doc.text("Note: Only records with valid prices (> $0) are included. Buyers sorted by total value (highest first).", doc.internal.pageSize.width / 2, currentY, { align: "center" })
   currentY += 10
 
-  const tableData = buyerArray.map(buyer => [
-    buyer.buyerId,
+  const tableData = buyerArray.map((buyer, index) => [
+    `${index + 1}. ${buyer.buyerId}`,
     buyer.noOfBales.toString(),
     buyer.totalWeight.toFixed(2),
+    buyer.noOfStations.toString(),
     buyer.averagePrice,
     buyer.totalValue.toFixed(2)
   ])
@@ -594,16 +582,17 @@ export const exportSalesSummaryByBuyerPDF = (data: InventoryItem[], filters: Buy
     "GRAND TOTAL",
     totals.noOfBales.toString(),
     totals.totalWeight.toFixed(2),
+    allStations.size.toString(),
     "—",
     totals.totalValue.toFixed(2)
   ])
 
-  const headers = ["Buyer ID", "No. of Bales", "Weight (kg)", "Avg. Price ($)", "Total Value ($)"]
-  const columnWidths = [40, 30, 30, 30, 40]
+  const headers = ["Buyer ID", "No. of Bales", "Weight (kg)", "Stations", "Avg. Price ($)", "Total Value ($)"]
+  const columnWidths = [35, 25, 25, 20, 25, 30]
   
   addSimpleTable(doc, headers, tableData, currentY, columnWidths)
 
-  doc.save(`Sales_Summary_By_Buyer_${new Date().toISOString().split("T")[0]}.pdf`)
+  doc.save(`All_Buyers_Summary_${new Date().toISOString().split("T")[0]}.pdf`)
 }
 
 // Keep the original functions for backward compatibility
