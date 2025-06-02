@@ -1,10 +1,10 @@
-import { Card, CardContent } from "@/app/components/ui/card"
-import { AlertTriangle } from "lucide-react"
+import { Card, CardContent } from "@/app/components/ui/card";
+import { AlertTriangle } from "lucide-react";
 
 interface ErrorDisplayProps {
-  message: string
+  message: string;
 }
-
+// This component displays an error message in a styled card format
 export function ErrorDisplay({ message }: ErrorDisplayProps) {
   return (
     <div className="flex items-center justify-center min-h-screen">
@@ -17,5 +17,5 @@ export function ErrorDisplay({ message }: ErrorDisplayProps) {
         </CardContent>
       </Card>
     </div>
-  )
+  );
 }
