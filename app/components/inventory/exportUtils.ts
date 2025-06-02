@@ -567,9 +567,9 @@ export const exportSalesSummaryByBuyerPDF = (data: InventoryItem[], filters: Buy
     buyer.buyerId,
     "—", 
     buyer.noOfBales.toString(),
-    buyer.totalWeight.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ","), // Format with commas
+    buyer.totalWeight.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ","), 
     buyer.averagePrice,
-    buyer.totalValue.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ",") // Format with commas
+    buyer.totalValue.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ",") 
   ])
 
   // Add totals row
@@ -596,20 +596,9 @@ export const exportSalesSummaryByBuyerPDF = (data: InventoryItem[], filters: Buy
   doc.setTextColor(44, 62, 80)
 
   currentY += 8
-
-  // doc.setFontSize(10)
-  // doc.setFont("helvetica", "normal")
-  // doc.setTextColor(0, 0, 0)
-  // doc.text("• The total values (weight and money) are calculated per buyer.", 25, currentY)
-  // currentY += 6
-  // doc.text("• Average Price = Total Amount ÷ Total Weight per buyer.", 25, currentY)
-  // currentY += 6
-  // doc.text("• Only records with valid prices (> $0) are included.", 25, currentY)
-
   doc.save(`Station_${filters.stationId}_Buyer_Report_${new Date().toISOString().split("T")[0]}.pdf`)
 }
 
-// Keep the original functions for backward compatibility
 export const exportToPDF = (data: InventoryItem[], filters: Filters) => {
   const dateRangeFilters: DateRangeFilters = {
     dateFrom: filters.dateFrom || "",
