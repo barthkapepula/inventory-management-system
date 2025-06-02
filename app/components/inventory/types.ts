@@ -69,7 +69,7 @@ export interface BuyerReportFilters {
 export interface StationSummaryFilters {
   dateFrom: string
   dateTo: string
-  tobaccoType?: string
+  tobaccoType: string
 }
 
 export interface DateBasedReportFilters {

@@ -66,14 +66,6 @@ export function ExportPopover({
             </div>
           </Button>
 
-          <Button onClick={openStationModal} variant="ghost" size="sm" className="w-full justify-start h-auto py-2">
-            <FileText className="h-4 w-4 mr-3" />
-            <div className="text-left">
-              <div className="font-medium">By Station</div>
-              <div className="text-xs text-gray-500">Sales summary per station</div>
-            </div>
-          </Button>
-
           <Button onClick={openBuyerModal} variant="ghost" size="sm" className="w-full justify-start h-auto py-2">
             <Users className="h-4 w-4 mr-3" />
             <div className="text-left">

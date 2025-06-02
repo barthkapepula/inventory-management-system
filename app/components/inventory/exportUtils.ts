@@ -378,8 +378,6 @@ export const exportSalesSummaryByStationPDF = (data: InventoryItem[], filters: S
           barcodes: new Set(),
           totalWeight: 0,
           totalValue: 0,
-          priceSum: 0,
-          priceCount: 0,
         }
       }
 
@@ -392,8 +390,6 @@ export const exportSalesSummaryByStationPDF = (data: InventoryItem[], filters: S
       const price = Number.parseFloat(item.price)
       const weight = Number.parseFloat(item.weight || "0")
       acc[stationId].totalValue += price * weight
-      acc[stationId].priceSum += price
-      acc[stationId].priceCount += 1
 
       return acc
     },
@@ -403,8 +399,12 @@ export const exportSalesSummaryByStationPDF = (data: InventoryItem[], filters: S
   const stationArray = Object.values(stationSummary).map((station: any) => ({
     ...station,
     noOfBales: station.barcodes.size,
-    averagePrice: station.priceCount > 0 ? (station.priceSum / station.priceCount).toFixed(2) : "0.00",
+    // Average Price = Total Value / Total Weight
+    averagePrice: station.totalWeight > 0 ? (station.totalValue / station.totalWeight).toFixed(2) : "0.00",
   }))
+
+  // Sort by station ID alphabetically
+  stationArray.sort((a, b) => a.stationId.localeCompare(b.stationId))
 
   const totals = stationArray.reduce(
     (acc, station) => ({
@@ -429,7 +429,7 @@ export const exportSalesSummaryByStationPDF = (data: InventoryItem[], filters: S
   doc.setFontSize(8)
   doc.setFont("helvetica", "italic")
   doc.setTextColor(127, 140, 141)
-  doc.text("Note: Only records with valid prices (> $0) are included in this summary", doc.internal.pageSize.width / 2, currentY, { align: "center" })
+  doc.text("Note: Only records with valid prices (> $0) are included. Average Price = Total Value ÷ Total Weight", doc.internal.pageSize.width / 2, currentY, { align: "center" })
   currentY += 10
 
   const tableData = stationArray.map(station => [
@@ -440,15 +440,18 @@ export const exportSalesSummaryByStationPDF = (data: InventoryItem[], filters: S
     station.totalValue.toFixed(2)
   ])
 
+  // Calculate overall average price for totals row
+  const overallAveragePrice = totals.totalWeight > 0 ? (totals.totalValue / totals.totalWeight).toFixed(2) : "0.00"
+
   tableData.push([
     "GRAND TOTAL",
     totals.noOfBales.toString(),
     totals.totalWeight.toFixed(2),
-    "—",
+    overallAveragePrice,
     totals.totalValue.toFixed(2)
   ])
 
-  const headers = ["Station ID", "No. of Bales", "Weight (kg)", "Avg. Price ($)", "Total Value ($)"]
+  const headers = ["Station ID", "No. of Bales", "Weight (kg)", "Avg. Price ($/kg)", "Total Value ($)"]
   const columnWidths = [40, 30, 30, 30, 40]
   
   addSimpleTable(doc, headers, tableData, currentY, columnWidths)
@@ -550,13 +553,12 @@ export const exportSalesSummaryByBuyerPDF = (data: InventoryItem[], filters: Buy
   })
 
   const doc = new jsPDF()
-  let currentY = addCompanyHeader(doc, "All Buyers Summary Report")
+  let currentY = addCompanyHeader(doc, "Sales Summary by Buyer")
 
   const reportInfo = {
     "Period": `${new Date(filters.dateFrom).toLocaleDateString("en-GB")} to ${new Date(filters.dateTo).toLocaleDateString("en-GB")}`,
     "Station Filter": filters.stationId || "ALL STATIONS",
     "Tobacco Type": filters.tobaccoType || "ALL TYPES",
-    "Total Buyers": buyerArray.length.toString(),
     "Total Stations": allStations.size.toString(),
     "Generated": `${new Date().toLocaleDateString("en-GB")} ${new Date().toLocaleTimeString("en-GB")}`,
   }
@@ -592,7 +594,7 @@ export const exportSalesSummaryByBuyerPDF = (data: InventoryItem[], filters: Buy
   
   addSimpleTable(doc, headers, tableData, currentY, columnWidths)
 
-  doc.save(`All_Buyers_Summary_${new Date().toISOString().split("T")[0]}.pdf`)
+  doc.save(`Sales_Summary_By_Buyer_${new Date().toISOString().split("T")[0]}.pdf`)
 }
 
 // Keep the original functions for backward compatibility
