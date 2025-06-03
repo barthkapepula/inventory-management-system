@@ -4,7 +4,6 @@ import { AlertTriangle } from "lucide-react";
 interface ErrorDisplayProps {
   message: string;
 }
-// This component displays an error message in a styled card format
 export function ErrorDisplay({ message }: ErrorDisplayProps) {
   return (
     <div className="flex items-center justify-center min-h-screen">
