@@ -1,14 +1,20 @@
-import { Card, CardContent } from "@/app/components/ui/card"
-import { InventoryItem } from "./types"
+import { Card, CardContent } from "@/app/components/ui/card";
+import { InventoryItem } from "./types";
 
 interface StatsCardsProps {
-  data: InventoryItem[]
-  filteredCount: number
-  uniqueFarmersCount: number
+  data: InventoryItem[];
+  filteredCount: number;
+  uniqueFarmersCount: number;
 }
 
-export function StatsCards({ data, filteredCount, uniqueFarmersCount }: StatsCardsProps) {
-  const recordsWithPrice = data ? data.filter((item) => Number.parseFloat(item.price || "0") > 0).length : 0
+export function StatsCards({
+  data,
+  filteredCount,
+  uniqueFarmersCount,
+}: StatsCardsProps) {
+  const recordsWithPrice = data
+    ? data.filter((item) => Number.parseFloat(item.price || "0") > 0).length
+    : 0;
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -37,5 +43,5 @@ export function StatsCards({ data, filteredCount, uniqueFarmersCount }: StatsCar
         </CardContent>
       </Card>
     </div>
-  )
+  );
 }

@@ -1,12 +1,12 @@
-import { Button } from "@/app/components/ui/button"
+import { Button } from "@/app/components/ui/button";
 
 interface InventoryPaginationProps {
-  currentPage: number
-  totalPages: number
-  totalItems: number
-  itemsPerPage: number
-  onPageChange: (page: number) => void
-  onItemsPerPageChange: (itemsPerPage: number) => void
+  currentPage: number;
+  totalPages: number;
+  totalItems: number;
+  itemsPerPage: number;
+  onPageChange: (page: number) => void;
+  onItemsPerPageChange: (itemsPerPage: number) => void;
 }
 
 export function InventoryPagination({
@@ -16,13 +16,14 @@ export function InventoryPagination({
   itemsPerPage,
   onPageChange,
 }: InventoryPaginationProps) {
-  if (totalPages <= 1) return null
+  if (totalPages <= 1) return null;
 
   return (
     <div className="flex items-center justify-between">
       <div className="text-sm text-gray-600">
         Showing {(currentPage - 1) * itemsPerPage + 1} to{" "}
-        {Math.min(currentPage * itemsPerPage, totalItems)} of {totalItems} results
+        {Math.min(currentPage * itemsPerPage, totalItems)} of {totalItems}{" "}
+        results
       </div>
       <div className="flex gap-2">
         <Button
@@ -36,7 +37,7 @@ export function InventoryPagination({
 
         <div className="flex gap-1">
           {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-            const page = i + 1
+            const page = i + 1;
             return (
               <Button
                 key={page}
@@ -46,7 +47,7 @@ export function InventoryPagination({
               >
                 {page}
               </Button>
-            )
+            );
           })}
         </div>
 
@@ -60,5 +61,5 @@ export function InventoryPagination({
         </Button>
       </div>
     </div>
-  )
+  );
 }

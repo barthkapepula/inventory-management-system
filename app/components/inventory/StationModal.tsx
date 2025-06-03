@@ -1,16 +1,22 @@
-import { Button } from "@/app/components/ui/button"
-import { Input } from "@/app/components/ui/input"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/app/components/ui/select"
-import { FileText } from "lucide-react"
-import { StationReportFilters } from "./types"
+import { Button } from "@/app/components/ui/button";
+import { Input } from "@/app/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/app/components/ui/select";
+import { FileText } from "lucide-react";
+import { StationReportFilters } from "./types";
 
 interface StationModalProps {
-  isOpen: boolean
-  onClose: () => void
-  filters: StationReportFilters
-  setFilters: React.Dispatch<React.SetStateAction<StationReportFilters>>
-  uniqueStationIds: string[]
-  onExport: () => void
+  isOpen: boolean;
+  onClose: () => void;
+  filters: StationReportFilters;
+  setFilters: React.Dispatch<React.SetStateAction<StationReportFilters>>;
+  uniqueStationIds: string[];
+  onExport: () => void;
 }
 
 export function StationModal({
@@ -21,25 +27,32 @@ export function StationModal({
   uniqueStationIds,
   onExport,
 }: StationModalProps) {
-  if (!isOpen) return null
+  if (!isOpen) return null;
 
   const handleClose = () => {
-    onClose()
-    setFilters({ stationId: "", dateFrom: "", dateTo: "" })
-  }
+    onClose();
+    setFilters({ stationId: "", dateFrom: "", dateTo: "" });
+  };
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
       <div className="bg-white rounded-lg p-6 w-96 max-w-md">
-        <h2 className="text-xl font-bold mb-4">Export Station Summary Report</h2>
+        <h2 className="text-xl font-bold mb-4">
+          Export Station Summary Report
+        </h2>
 
         <div className="space-y-4">
           <div>
-            <label className="text-sm font-medium mb-2 block">Station ID (Optional)</label>
+            <label className="text-sm font-medium mb-2 block">
+              Station ID (Optional)
+            </label>
             <Select
               value={filters.stationId}
               onValueChange={(value) =>
-                setFilters((prev) => ({ ...prev, stationId: value === "all" ? "" : value }))
+                setFilters((prev) => ({
+                  ...prev,
+                  stationId: value === "all" ? "" : value,
+                }))
               }
             >
               <SelectTrigger>
@@ -57,11 +70,15 @@ export function StationModal({
           </div>
 
           <div>
-            <label className="text-sm font-medium mb-2 block">Date From *</label>
+            <label className="text-sm font-medium mb-2 block">
+              Date From *
+            </label>
             <Input
               type="date"
               value={filters.dateFrom}
-              onChange={(e) => setFilters((prev) => ({ ...prev, dateFrom: e.target.value }))}
+              onChange={(e) =>
+                setFilters((prev) => ({ ...prev, dateFrom: e.target.value }))
+              }
               required
             />
           </div>
@@ -71,7 +88,9 @@ export function StationModal({
             <Input
               type="date"
               value={filters.dateTo}
-              onChange={(e) => setFilters((prev) => ({ ...prev, dateTo: e.target.value }))}
+              onChange={(e) =>
+                setFilters((prev) => ({ ...prev, dateTo: e.target.value }))
+              }
               required
             />
           </div>
@@ -92,5 +111,5 @@ export function StationModal({
         </div>
       </div>
     </div>
-  )
+  );
 }
