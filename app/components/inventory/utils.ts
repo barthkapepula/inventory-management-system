@@ -4,7 +4,7 @@ export const parseDate = (dateStr: string) => {
   const parts = dateStr.split("/");
   if (parts.length === 3) {
     const day = Number.parseInt(parts[0]);
-    const month = Number.parseInt(parts[1]) - 1; // Month is 0-indexed
+    const month = Number.parseInt(parts[1]) - 1; 
     const year = Number.parseInt(parts[2]);
     return new Date(year, month, day);
   }
