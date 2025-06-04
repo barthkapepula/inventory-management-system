@@ -11,6 +11,7 @@ export * from "./LoadingSpinner"
 export * from "./ErrorDisplay"
 export * from "./sales-date-modal"
 export * from "./station-summary-modal"
+export * from "./farmer-summary-modal"
 export * from "./export-popover"
 
 // Export specific functions from exportUtils to avoid conflicts
@@ -21,5 +22,6 @@ export {
   exportSalesSummaryByDatePDF,
   exportSalesSummaryByStationPDF,
   exportSalesSummaryByBuyerPDF,
-  exportSalesSummaryByDateRangePDF
+  exportSalesSummaryByDateRangePDF,
+  exportSalesSummaryByFarmerPDF
 } from "./exportUtils"

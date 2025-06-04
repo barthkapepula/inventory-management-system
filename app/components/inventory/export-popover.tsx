@@ -6,7 +6,8 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { Download, FileText, Users, Calendar, ChevronDown } from "lucide-react";
+
+import { Download, FileText, Users, Calendar, ChevronDown, UserCheck } from "lucide-react";
 
 interface ExportPopoverProps {
   exportToExcel: () => void;
@@ -15,6 +16,7 @@ interface ExportPopoverProps {
   openBuyerModal: () => void;
   openSalesDateModal: () => void;
   openStationSummaryModal: () => void;
+  openFarmerModal: () => void;
 }
 
 export function ExportPopover({
@@ -24,7 +26,14 @@ export function ExportPopover({
   openBuyerModal,
   openSalesDateModal,
   openStationSummaryModal,
+  openFarmerModal,
 }: ExportPopoverProps) {
+  
+  const handleFarmerClick = () => {
+    console.log("Farmer button clicked"); // Debug log
+    openFarmerModal();
+  };
+
   return (
     <Popover>
       <PopoverTrigger asChild>
@@ -101,6 +110,21 @@ export function ExportPopover({
               <div className="font-medium">By Buyer</div>
               <div className="text-xs text-gray-500">
                 Sales summary per buyer
+              </div>
+            </div>
+          </Button>
+
+          <Button
+            onClick={handleFarmerClick}
+            variant="ghost"
+            size="sm"
+            className="w-full justify-start h-auto py-2"
+          >
+            <UserCheck className="h-4 w-4 mr-3" />
+            <div className="text-left">
+              <div className="font-medium">By Farmer</div>
+              <div className="text-xs text-gray-500">
+                Sales summary per farmer
               </div>
             </div>
           </Button>

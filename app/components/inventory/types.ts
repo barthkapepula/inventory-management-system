@@ -80,6 +80,14 @@ export interface DateBasedReportFilters {
   reportType: "daily" | "monthly" | "yearly";
 }
 
+// Add this missing interface
+export interface FarmerReportFilters {
+  dateFrom: string;
+  dateTo: string;
+  stationId?: string;
+  tobaccoType?: string;
+}
+
 export interface Stats {
   totalItems: number;
   totalWeight: number;
