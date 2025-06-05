@@ -9,6 +9,7 @@ interface HeaderProps {
   openBuyerModal: () => void;
   openSalesDateModal: () => void;
   openStationSummaryModal: () => void;
+  openFarmerModal: () => void;
 }
 
 export function InventoryHeader({
@@ -18,6 +19,7 @@ export function InventoryHeader({
   openBuyerModal,
   openSalesDateModal,
   openStationSummaryModal,
+  openFarmerModal,
 }: HeaderProps) {
   return (
     <div className="flex flex-col space-y-4 lg:flex-row lg:items-center lg:justify-between lg:space-y-0">
@@ -37,6 +39,7 @@ export function InventoryHeader({
           openBuyerModal={openBuyerModal}
           openSalesDateModal={openSalesDateModal}
           openStationSummaryModal={openStationSummaryModal}
+          openFarmerModal={openFarmerModal}
         />
       </div>
     </div>

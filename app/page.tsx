@@ -21,7 +21,8 @@ import {
   type StationReportFilters,
   type BuyerReportFilters,
   type DateBasedReportFilters,
-  type VisibleColumns
+  type VisibleColumns,
+  FarmerSummaryModal
 } from "./components/inventory"
 import { SalesDateModal } from "./components/inventory/sales-date-modal"
 import { StationSummaryModal } from "./components/inventory/station-summary-modal"
@@ -74,6 +75,11 @@ export default function InventoryPage() {
   const [isBuyerModalOpen, setIsBuyerModalOpen] = useState(false)
   const [isSalesDateModalOpen, setIsSalesDateModalOpen] = useState(false)
   const [isStationSummaryModalOpen, setIsStationSummaryModalOpen] = useState(false)
+  const [isFarmerSummaryModalOpen, setIsFarmerSummaryModalOpen] = useState(false)
+
+  const handleOpenFarmerModal = () => {
+    setIsFarmerSummaryModalOpen(true);
+  };
 
   // Filter states for modals
   const [stationReportFilters, setStationReportFilters] = useState<StationReportFilters>({
@@ -183,6 +189,7 @@ export default function InventoryPage() {
           openBuyerModal={() => setIsBuyerModalOpen(true)}
           openSalesDateModal={() => setIsSalesDateModalOpen(true)}
           openStationSummaryModal={() => setIsStationSummaryModalOpen(true)}
+          openFarmerModal={handleOpenFarmerModal}
         />
 
         <StatsCards 
@@ -258,6 +265,12 @@ export default function InventoryPage() {
           setFilters={setStationSummaryFilters}
           onExport={handleStationSummaryExport}
           uniqueTobaccoTypes={uniqueTobaccoTypes}
+        />
+        
+        <FarmerSummaryModal
+          isOpen={isFarmerSummaryModalOpen}
+          onClose={() => setIsFarmerSummaryModalOpen(false)}
+          data={data}
         />
       </div>
     </div>
