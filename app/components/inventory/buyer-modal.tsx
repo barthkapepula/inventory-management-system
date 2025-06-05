@@ -42,9 +42,23 @@ export function BuyerModal({
 
         <div className="space-y-4">
           <div>
-            <label className="text-sm font-medium mb-2 block">
+            <label htmlFor="stationId" className="text-sm font-medium mb-2 block">
               Station ID (Optional)
             </label>
+            <Input
+              id="stationId"
+              type="text"
+              value={filters.stationId || ""}
+              onChange={(e) =>
+                setFilters({
+                  ...filters,
+                  stationId: e.target.value === "" ? undefined : e.target.value,
+                })
+              }
+              placeholder="Enter station ID or leave empty for all"
+            />
+            
+            {/* Select dropdown (commented out)
             <Select
               value={filters.stationId || ""}
               onValueChange={(value) =>
@@ -66,6 +80,7 @@ export function BuyerModal({
                 ))}
               </SelectContent>
             </Select>
+            */}
           </div>
 
           <div>

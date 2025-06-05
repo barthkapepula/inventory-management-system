@@ -48,6 +48,16 @@ export function StationModal({
             <label className="text-sm font-medium mb-2 block">
               Station ID (Optional)
             </label>
+            <Input
+              type="text"
+              id="stationId"
+              value={filters.stationId}
+              onChange={(e) => setFilters({ ...filters, stationId: e.target.value })}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="Enter station ID"
+            />
+            
+            {/* Select dropdown (commented out)
             <Select
               value={filters.stationId}
               onValueChange={(value) =>
@@ -69,6 +79,7 @@ export function StationModal({
                 ))}
               </SelectContent>
             </Select>
+            */}
           </div>
 
           <div>

@@ -144,9 +144,23 @@ export function SalesDateModal({
           </div>
 
           <div>
-            <label className="text-sm font-medium mb-2 block">
+            <label htmlFor="stationId" className="text-sm font-medium mb-2 block">
               Station ID (Optional)
             </label>
+            <Input
+              id="stationId"
+              type="text"
+              value={filters.stationId || ""}
+              onChange={(e) =>
+                setFilters({
+                  ...filters,
+                  stationId: e.target.value === "" ? undefined : e.target.value,
+                })
+              }
+              placeholder="Enter station ID or leave empty for all"
+            />
+            
+            {/* Select dropdown (commented out)
             <Select
               value={filters.stationId || ""}
               onValueChange={(value) =>
@@ -168,6 +182,7 @@ export function SalesDateModal({
                 ))}
               </SelectContent>
             </Select>
+            */}
           </div>
 
           <div className="text-sm text-gray-600 bg-blue-50 p-3 rounded-md">

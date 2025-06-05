@@ -1,3 +1,5 @@
+"use client";
+
 import { useState, useEffect, useMemo } from "react";
 import { InventoryItem, Filters, SortConfig } from "./types";
 import { parseDate, getUniqueValues } from "./utils";

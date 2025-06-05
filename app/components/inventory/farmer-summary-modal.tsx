@@ -101,7 +101,18 @@ export function FarmerSummaryModal({
           </div>
 
           <div className="space-y-2">
-            <Label>Station </Label>
+            <Label htmlFor="stationId">Station</Label>
+            <Input
+              id="stationId"
+              type="text"
+              value={filters.stationId}
+              onChange={(e) =>
+                setFilters({ ...filters, stationId: e.target.value })
+              }
+              placeholder="Enter station ID or leave empty for all"
+            />
+            
+            {/* Select dropdown (commented out)
             <Select
               value={filters.stationId}
               onValueChange={(value) =>
@@ -120,6 +131,7 @@ export function FarmerSummaryModal({
                 ))}
               </SelectContent>
             </Select>
+            */}
           </div>
 
           <div className="space-y-2">
