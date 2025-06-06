@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import dynamic from 'next/dynamic'
 import { 
   InventoryHeader, 
   InventoryFilters, 
@@ -8,271 +9,166 @@ import {
   InventoryPagination,
   StatsCards,
   LoadingSpinner,
-  ErrorDisplay,
   StationModal,
   useInventoryData,
-  exportToCSV,
-  exportSalesSummaryByDatePDF,
-  exportSalesSummaryByStationPDF,
-  exportSalesSummaryByBuyerPDF,
-  exportSalesSummaryByDateRangePDF,
-  type DateRangeFilters,
-  type StationSummaryFilters,
-  type StationReportFilters,
-  type BuyerReportFilters,
-  type DateBasedReportFilters,
   type VisibleColumns,
   FarmerSummaryModal
 } from "./components/inventory"
 import { SalesDateModal } from "./components/inventory/sales-date-modal"
 import { StationSummaryModal } from "./components/inventory/station-summary-modal"
 import { BuyerModal } from "./components/inventory/buyer-modal"
+import { useModalStates } from "./hooks/useModalStates"
+import { useFilterStates } from "./hooks/useFilterStates"
+import { useDataFiltering } from "./hooks/useDataFiltering"
+import { useExportHandlers } from "./hooks/useExportHandlers"
+import { INITIAL_VISIBLE_COLUMNS, DEFAULT_ITEMS_PER_PAGE, SORT_CONFIG } from "./constants/inventory"
 
-interface SalesDateReportFilters {
-  dateFrom: string
-  dateTo: string
-  tobaccoType: string
-  stationId: string
-  reportType: string
-}
+const ErrorDisplay = dynamic(
+  () => import('./components/inventory/ErrorDisplay').then((mod) => mod.ErrorDisplay),
+  { ssr: false }
+)
 
 export default function InventoryPage() {
-  const {
-    data,
-    loading,
-    error,
-    filters,
-    setFilters,
-    currentPage,
-    setCurrentPage,
-    totalPages,
-    paginatedData,
-    uniqueFarmerIds,
-    uniqueBuyerIds,
-    uniqueTobaccoTypes,
-    uniqueStationIds,
-  } = useInventoryData()
+  // Data and core state
+  const inventoryData = useInventoryData()
+  const [visibleColumns, setVisibleColumns] = useState<VisibleColumns>(INITIAL_VISIBLE_COLUMNS)
+  const [itemsPerPage, setItemsPerPage] = useState(DEFAULT_ITEMS_PER_PAGE)
 
-  const [visibleColumns, setVisibleColumns] = useState<VisibleColumns>({
-    barcodeId: true,
-    weight: true,
-    farmerId: true,
-    stationId: true,
-    buyerId: true,
-    registra: true,
-    lotNumber: true,
-    grade: true,
-    price: true,
-    tobaccoType: true,
-    dateFormated: true,
-    dispatchId: true,
-  })
+  // Custom hooks for state management
+  const modalStates = useModalStates()
+  const filterStates = useFilterStates()
+  const filteredData = useDataFiltering(inventoryData.data, inventoryData.filters)
+  const exportHandlers = useExportHandlers(
+    inventoryData.data,
+    filteredData,
+    inventoryData.filters,
+    filterStates,
+    modalStates
+  )
 
-  const [itemsPerPage, setItemsPerPage] = useState(10)
-
-  // Modal states
-  const [isStationModalOpen, setIsStationModalOpen] = useState(false)
-  const [isBuyerModalOpen, setIsBuyerModalOpen] = useState(false)
-  const [isSalesDateModalOpen, setIsSalesDateModalOpen] = useState(false)
-  const [isStationSummaryModalOpen, setIsStationSummaryModalOpen] = useState(false)
-  const [isFarmerSummaryModalOpen, setIsFarmerSummaryModalOpen] = useState(false)
-
-  const handleOpenFarmerModal = () => {
-    setIsFarmerSummaryModalOpen(true);
-  };
-
-  // Filter states for modals
-  const [stationReportFilters, setStationReportFilters] = useState<StationReportFilters>({
-    stationId: "",
-    dateFrom: "",
-    dateTo: "",
-  })
-
-  const [buyerReportFilters, setBuyerReportFilters] = useState<BuyerReportFilters>({
-    stationId: undefined,
-    tobaccoType: undefined,
-    dateFrom: "",
-    dateTo: "",
-  })
-
-  const [salesDateFilters, setSalesDateFilters] = useState<DateBasedReportFilters>({
-    dateFrom: "",
-    dateTo: "",
-    tobaccoType: undefined,
-    stationId: undefined,
-    reportType: "daily",
-  })
-
-  const [stationSummaryFilters, setStationSummaryFilters] = useState<StationSummaryFilters>({
-    dateFrom: "",
-    dateTo: "",
-    tobaccoType: "",
-  })
-
-  // Apply filters to get filtered data
-  const filteredData = data.filter((item) => {
-    const matchesFarmerId = !filters.farmerId || item.farmerId.toLowerCase().includes(filters.farmerId.toLowerCase())
-    const matchesBuyerId = !filters.buyerId || item.buyerId.toLowerCase().includes(filters.buyerId.toLowerCase())
-    const matchesTobaccoType = !filters.tobaccoType || item.tobaccoType === filters.tobaccoType
-    const matchesStationId = !filters.stationId || item.stationId === filters.stationId
-    const matchesSearch = !filters.search || 
-      Object.values(item).some(value => 
-        value && value.toString().toLowerCase().includes(filters.search.toLowerCase())
-      )
-
-    let matchesDateRange = true
-    if (filters.dateFrom || filters.dateTo) {
-      const itemDate = new Date(item.date)
-      if (filters.dateFrom) {
-        const fromDate = new Date(filters.dateFrom)
-        matchesDateRange = matchesDateRange && itemDate >= fromDate
-      }
-      if (filters.dateTo) {
-        const toDate = new Date(filters.dateTo)
-        matchesDateRange = matchesDateRange && itemDate <= toDate
-      }
-    }
-
-    return matchesFarmerId && matchesBuyerId && matchesTobaccoType && matchesStationId && matchesSearch && matchesDateRange
-  })
-
-  // Calculate unique farmers count from filtered data
+  // Derived values
   const uniqueFarmersInFilteredData = new Set(filteredData.map(item => item.farmerId)).size
 
-  // Export functions
-  const handleExportToExcel = () => {
-    exportToCSV(filteredData)
-  }
-
-  const handleExportToPDF = () => {
-    const dateRangeFilters: DateRangeFilters = {
-      dateFrom: filters.dateFrom || "",
-      dateTo: filters.dateTo || "",
-      stationId: filters.stationId,
-      tobaccoType: filters.tobaccoType
-    }
-    exportSalesSummaryByDatePDF(filteredData, dateRangeFilters)
-  }
-
-  const handleSalesDateExport = () => {
-    const dateBasedFilters: DateBasedReportFilters = {
-      dateFrom: salesDateFilters.dateFrom,
-      dateTo: salesDateFilters.dateTo,
-      stationId: salesDateFilters.stationId,
-      tobaccoType: salesDateFilters.tobaccoType,
-      reportType: salesDateFilters.reportType as 'daily' | 'monthly' | 'yearly'
-    }
-    exportSalesSummaryByDateRangePDF(data, dateBasedFilters)
-    setIsSalesDateModalOpen(false)
-  }
-
-  const handleStationSummaryExport = () => {
-    exportSalesSummaryByStationPDF(filteredData, stationSummaryFilters)
-    setIsStationSummaryModalOpen(false)
-  }
-
-  const handleBuyerExport = () => {
-    exportSalesSummaryByBuyerPDF(data, buyerReportFilters)
-    setIsBuyerModalOpen(false)
-  }
-
-  if (loading) return <LoadingSpinner />
-  if (error) return <ErrorDisplay message={error} />
+  // Early returns for loading and error states
+  if (inventoryData.loading) return <LoadingSpinner />
+  if (inventoryData.error) return <ErrorDisplay message={inventoryData.error} />
 
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="container mx-auto px-4 py-6 space-y-6">
         <InventoryHeader
-          exportToExcel={handleExportToExcel}
-          exportToPDF={handleExportToPDF}
-          openStationModal={() => setIsStationModalOpen(true)}
-          openBuyerModal={() => setIsBuyerModalOpen(true)}
-          openSalesDateModal={() => setIsSalesDateModalOpen(true)}
-          openStationSummaryModal={() => setIsStationSummaryModalOpen(true)}
-          openFarmerModal={handleOpenFarmerModal}
+          exportToExcel={exportHandlers.handleExportToExcel}
+          exportToPDF={exportHandlers.handleExportToPDF}
+          openStationModal={modalStates.openStationModal}
+          openBuyerModal={modalStates.openBuyerModal}
+          openSalesDateModal={modalStates.openSalesDateModal}
+          openStationSummaryModal={modalStates.openStationSummaryModal}
+          openFarmerModal={modalStates.openFarmerModal}
         />
 
         <StatsCards 
-          data={data}
+          data={inventoryData.data}
           filteredCount={filteredData.length}
           uniqueFarmersCount={uniqueFarmersInFilteredData}
         />
 
         <InventoryFilters
-          filters={filters}
-          setFilters={setFilters}
-          uniqueFarmerIds={uniqueFarmerIds}
-          uniqueBuyerIds={uniqueBuyerIds}
-          uniqueTobaccoTypes={uniqueTobaccoTypes}
-          uniqueStationIds={uniqueStationIds}
+          filters={inventoryData.filters}
+          setFilters={inventoryData.setFilters}
+          uniqueFarmerIds={inventoryData.uniqueFarmerIds}
+          uniqueBuyerIds={inventoryData.uniqueBuyerIds}
+          uniqueTobaccoTypes={inventoryData.uniqueTobaccoTypes}
+          uniqueStationIds={inventoryData.uniqueStationIds}
           visibleColumns={visibleColumns}
           setVisibleColumns={setVisibleColumns}
         />
 
         <InventoryTable
-          data={paginatedData}
+          data={inventoryData.paginatedData}
           visibleColumns={visibleColumns}
-          sortConfig={{ key: null, direction: "asc" }}
+          sortConfig={SORT_CONFIG}
           onSort={() => {}}
         />
 
         <InventoryPagination
-          currentPage={currentPage}
-          totalPages={totalPages}
+          currentPage={inventoryData.currentPage}
+          totalPages={inventoryData.totalPages}
           itemsPerPage={itemsPerPage}
           totalItems={filteredData.length}
-          onPageChange={setCurrentPage}
+          onPageChange={inventoryData.setCurrentPage}
           onItemsPerPageChange={setItemsPerPage}
         />
 
-        {/* Modals */}
-        <StationModal
-          isOpen={isStationModalOpen}
-          onClose={() => setIsStationModalOpen(false)}
-          filters={stationReportFilters}
-          setFilters={setStationReportFilters}
-          onExport={() => {
-            // Handle station export here if needed
-            setIsStationModalOpen(false)
-          }}
-          uniqueStationIds={uniqueStationIds}
-        />
-
-        <BuyerModal
-          isOpen={isBuyerModalOpen}
-          onClose={() => setIsBuyerModalOpen(false)}
-          filters={buyerReportFilters}
-          setFilters={setBuyerReportFilters}
-          onExport={handleBuyerExport}
-          uniqueTobaccoTypes={uniqueTobaccoTypes}
-          uniqueStationIds={uniqueStationIds}
-        />
-
-        <SalesDateModal
-          isOpen={isSalesDateModalOpen}
-          onClose={() => setIsSalesDateModalOpen(false)}
-          filters={salesDateFilters}
-          setFilters={setSalesDateFilters}
-          onExport={handleSalesDateExport}
-          uniqueTobaccoTypes={uniqueTobaccoTypes}
-          uniqueStationIds={uniqueStationIds}
-        />
-
-        <StationSummaryModal
-          isOpen={isStationSummaryModalOpen}
-          onClose={() => setIsStationSummaryModalOpen(false)}
-          filters={stationSummaryFilters}
-          setFilters={setStationSummaryFilters}
-          onExport={handleStationSummaryExport}
-          uniqueTobaccoTypes={uniqueTobaccoTypes}
-        />
-        
-        <FarmerSummaryModal
-          isOpen={isFarmerSummaryModalOpen}
-          onClose={() => setIsFarmerSummaryModalOpen(false)}
-          data={data}
+        <ModalComponents
+          modalStates={modalStates}
+          filterStates={filterStates}
+          exportHandlers={exportHandlers}
+          inventoryData={inventoryData}
         />
       </div>
     </div>
+  )
+}
+
+// Separate component for all modals to reduce main component complexity
+interface ModalComponentsProps {
+  modalStates: ReturnType<typeof useModalStates>
+  filterStates: ReturnType<typeof useFilterStates>
+  exportHandlers: ReturnType<typeof useExportHandlers>
+  inventoryData: ReturnType<typeof useInventoryData>
+}
+
+function ModalComponents({ 
+  modalStates, 
+  filterStates, 
+  exportHandlers, 
+  inventoryData 
+}: ModalComponentsProps) {
+  return (
+    <>
+      <StationModal
+        isOpen={modalStates.isStationModalOpen}
+        onClose={modalStates.closeStationModal}
+        filters={filterStates.stationReportFilters}
+        setFilters={filterStates.setStationReportFilters}
+        onExport={modalStates.closeStationModal}
+        uniqueStationIds={inventoryData.uniqueStationIds}
+      />
+
+      <BuyerModal
+        isOpen={modalStates.isBuyerModalOpen}
+        onClose={modalStates.closeBuyerModal}
+        filters={filterStates.buyerReportFilters}
+        setFilters={filterStates.setBuyerReportFilters}
+        onExport={exportHandlers.handleBuyerExport}
+        uniqueTobaccoTypes={inventoryData.uniqueTobaccoTypes}
+        uniqueStationIds={inventoryData.uniqueStationIds}
+      />
+
+      <SalesDateModal
+        isOpen={modalStates.isSalesDateModalOpen}
+        onClose={modalStates.closeSalesDateModal}
+        filters={filterStates.salesDateFilters}
+        setFilters={filterStates.setSalesDateFilters}
+        onExport={exportHandlers.handleSalesDateExport}
+        uniqueTobaccoTypes={inventoryData.uniqueTobaccoTypes}
+        uniqueStationIds={inventoryData.uniqueStationIds}
+      />
+
+      <StationSummaryModal
+        isOpen={modalStates.isStationSummaryModalOpen}
+        onClose={modalStates.closeStationSummaryModal}
+        filters={filterStates.stationSummaryFilters}
+        setFilters={filterStates.setStationSummaryFilters}
+        onExport={exportHandlers.handleStationSummaryExport}
+        uniqueTobaccoTypes={inventoryData.uniqueTobaccoTypes}
+      />
+      
+      <FarmerSummaryModal
+        isOpen={modalStates.isFarmerSummaryModalOpen}
+        onClose={modalStates.closeFarmerModal}
+        data={inventoryData.data}
+      />
+    </>
   )
 }

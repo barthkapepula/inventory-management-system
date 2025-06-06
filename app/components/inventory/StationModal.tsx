@@ -1,5 +1,7 @@
 import { Button } from "@/app/components/ui/button";
 import { Input } from "@/app/components/ui/input";
+import { FileText } from "lucide-react";
+import { StationReportFilters } from "./types";
 import {
   Select,
   SelectContent,
@@ -7,8 +9,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/app/components/ui/select";
-import { FileText } from "lucide-react";
-import { StationReportFilters } from "./types";
 
 interface StationModalProps {
   isOpen: boolean;
@@ -48,7 +48,7 @@ export function StationModal({
             </label>
             <Select
               value={filters.stationId}
-              onValueChange={(value) =>
+              onValueChange={(value: string) =>
                 setFilters((prev) => ({
                   ...prev,
                   stationId: value === "all" ? "" : value,

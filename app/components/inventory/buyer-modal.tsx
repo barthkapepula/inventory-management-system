@@ -89,7 +89,7 @@ export function BuyerModal({
             </label>
             <Select
               value={filters.tobaccoType || ""}
-              onValueChange={(value) =>
+              onValueChange={(value:any) =>
                 setFilters({
                   ...filters,
                   tobaccoType: value === "all" ? undefined : value,
