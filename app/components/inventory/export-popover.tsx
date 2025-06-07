@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Popover,
@@ -28,14 +29,20 @@ export function ExportPopover({
   openStationSummaryModal,
   openFarmerModal,
 }: ExportPopoverProps) {
-  
+  const [isOpen, setIsOpen] = useState(false);
+
+  const handleModalOpen = (openFn: () => void) => {
+    setIsOpen(false);
+    openFn();
+  };
+
   const handleFarmerClick = () => {
     console.log("Farmer button clicked"); // Debug log
-    openFarmerModal();
+    handleModalOpen(openFarmerModal);
   };
 
   return (
-    <Popover>
+    <Popover open={isOpen} onOpenChange={setIsOpen}>
       <PopoverTrigger asChild>
         <Button variant="outline" size="sm" className="w-full sm:w-auto">
           <Download className="h-4 w-4 mr-2" />
@@ -85,7 +92,7 @@ export function ExportPopover({
           </div> */}
 
           <Button
-            onClick={openStationSummaryModal}
+            onClick={() => handleModalOpen(openStationSummaryModal)}
             variant="ghost"
             size="sm"
             className="w-full justify-start h-auto py-2"
@@ -100,7 +107,7 @@ export function ExportPopover({
           </Button>
 
           <Button
-            onClick={openBuyerModal}
+            onClick={() => handleModalOpen(openBuyerModal)}
             variant="ghost"
             size="sm"
             className="w-full justify-start h-auto py-2"
@@ -127,7 +134,7 @@ export function ExportPopover({
           </Button>
 
           <Button
-            onClick={openSalesDateModal}
+            onClick={() => handleModalOpen(openSalesDateModal)}
             variant="ghost"
             size="sm"
             className="w-full justify-start h-auto py-2"
