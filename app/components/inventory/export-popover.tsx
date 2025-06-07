@@ -50,7 +50,7 @@ export function ExportPopover({
             Export Options
           </div>
 
-          <Button
+          {/* <Button
             onClick={exportToExcel}
             variant="ghost"
             size="sm"
@@ -63,9 +63,9 @@ export function ExportPopover({
                 Download filtered data as CSV
               </div>
             </div>
-          </Button>
+          </Button> */}
 
-          <Button
+          {/* <Button
             onClick={exportToPDF}
             variant="ghost"
             size="sm"
@@ -82,7 +82,7 @@ export function ExportPopover({
 
           <div className="px-2 py-1.5 text-xs font-medium text-gray-500 border-t border-b">
             Summary Reports
-          </div>
+          </div> */}
 
           <Button
             onClick={openStationSummaryModal}
@@ -92,7 +92,7 @@ export function ExportPopover({
           >
             <FileText className="h-4 w-4 mr-3" />
             <div className="text-left">
-              <div className="font-medium">Summary by Station</div>
+              <div className="font-medium">Sales Summary by All Stations</div>
               <div className="text-xs text-gray-500">
                 All stations by date & type
               </div>
@@ -107,9 +107,9 @@ export function ExportPopover({
           >
             <Users className="h-4 w-4 mr-3" />
             <div className="text-left">
-              <div className="font-medium">By Buyer</div>
+              <div className="font-medium">Sales Summary by All Buyers</div>
               <div className="text-xs text-gray-500">
-                Sales summary per buyer
+                Sales summary by all buyers
               </div>
             </div>
           </Button>
@@ -122,10 +122,7 @@ export function ExportPopover({
           >
             <UserCheck className="h-4 w-4 mr-3" />
             <div className="text-left">
-              <div className="font-medium">By Farmer</div>
-              <div className="text-xs text-gray-500">
-                Sales summary per farmer
-              </div>
+              <div className="font-medium">Farmers Sales detailed statement</div>
             </div>
           </Button>
 
@@ -137,8 +134,7 @@ export function ExportPopover({
           >
             <Calendar className="h-4 w-4 mr-3" />
             <div className="text-left">
-              <div className="font-medium">By Date Range</div>
-              <div className="text-xs text-gray-500">Daily sales summary</div>
+              <div className="font-medium">Sales Summary by sales Dates</div>
             </div>
           </Button>
         </div>
