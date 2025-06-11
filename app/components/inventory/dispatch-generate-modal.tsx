@@ -9,6 +9,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { exportDispatchDataPDF } from "./exportDispatch";
+import { toast } from "sonner";
 
 interface DispatchRecord {
   barcodeId: string;
@@ -46,7 +47,7 @@ export function DispatchGenerateModal({ dispatchData, onClose }: DispatchGenerat
 
   const handleGenerate = async () => {
     if (!dispatchbookNumber.trim()) {
-      alert("Please enter a dispatch book number");
+      toast.success("Please enter a dispatch book number");
       return;
     }
 
@@ -58,7 +59,7 @@ export function DispatchGenerateModal({ dispatchData, onClose }: DispatchGenerat
       );
 
       if (matchingRecords.length === 0) {
-        alert(`No dispatch records found for book number: ${dispatchbookNumber}`);
+        toast.success(`No dispatch records found for book number: ${dispatchbookNumber}`);
         return;
       }
 
