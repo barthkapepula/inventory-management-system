@@ -2,10 +2,7 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import {
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { exportDispatchDataPDF } from "./exportDispatch";
@@ -27,17 +24,22 @@ interface DispatchGenerateModalProps {
   onClose: () => void;
 }
 
-export function DispatchGenerateModal({ dispatchData, onClose }: DispatchGenerateModalProps) {
+export function DispatchGenerateModal({
+  dispatchData,
+  onClose,
+}: DispatchGenerateModalProps) {
   const [dispatchbookNumber, setDispatchbookNumber] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [filteredRecords, setFilteredRecords] = useState<DispatchRecord[]>([]);
 
   const handleInputChange = (value: string) => {
     setDispatchbookNumber(value);
-    
+
     if (value.trim()) {
-      const filtered = dispatchData.filter(record => 
-        record.dispatchbookNumber.toLowerCase().includes(value.toLowerCase().trim())
+      const filtered = dispatchData.filter((record) =>
+        record.dispatchbookNumber
+          .toLowerCase()
+          .includes(value.toLowerCase().trim())
       );
       setFilteredRecords(filtered);
     } else {
@@ -55,23 +57,27 @@ export function DispatchGenerateModal({ dispatchData, onClose }: DispatchGenerat
     try {
       // Get all records that match the dispatch book number
       const matchingRecords = dispatchData.filter(
-        (record) => record.dispatchbookNumber.toLowerCase() === dispatchbookNumber.toLowerCase().trim()
+        (record) =>
+          record.dispatchbookNumber.toLowerCase() ===
+          dispatchbookNumber.toLowerCase().trim()
       );
 
       if (matchingRecords.length === 0) {
-        toast.success(`No dispatch records found for book number: ${dispatchbookNumber}`);
+        toast.success(
+          `No dispatch records found for book number: ${dispatchbookNumber}`
+        );
         return;
       }
 
       // Group records by dispatch book number and combine barcodes
       const groupedRecord = {
         ...matchingRecords[0], // Use first record for common data
-        barcodeId: matchingRecords.map(record => record.barcodeId).join(', ')
+        barcodeId: matchingRecords.map((record) => record.barcodeId).join(", "),
       };
 
       console.log("Generating PDF for:", groupedRecord);
       await exportDispatchDataPDF(groupedRecord);
-      
+
       // Reset form and close modal after successful generation
       setDispatchbookNumber("");
       setFilteredRecords([]);
@@ -85,13 +91,15 @@ export function DispatchGenerateModal({ dispatchData, onClose }: DispatchGenerat
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') {
+    if (e.key === "Enter") {
       handleGenerate();
     }
   };
 
   // Get unique dispatch book numbers for suggestions
-  const uniqueBookNumbers = [...new Set(dispatchData.map(record => record.dispatchbookNumber))];
+  const uniqueBookNumbers = [
+    ...new Set(dispatchData.map((record) => record.dispatchbookNumber)),
+  ];
 
   return (
     <>
@@ -118,12 +126,14 @@ export function DispatchGenerateModal({ dispatchData, onClose }: DispatchGenerat
         {filteredRecords.length > 0 && (
           <div className="bg-gray-50 p-3 rounded-md">
             <p className="text-sm font-medium text-gray-700 mb-2">
-              Found {filteredRecords.length} record(s) for "{dispatchbookNumber}":
+              Found {filteredRecords.length} record(s) for "{dispatchbookNumber}
+              ":
             </p>
             <div className="space-y-1">
               {filteredRecords.slice(0, 3).map((record, index) => (
                 <div key={index} className="text-xs text-gray-600">
-                  Driver: {record.driverName} | Destination: {record.destination}
+                  Driver: {record.driverName} | Destination:{" "}
+                  {record.destination}
                 </div>
               ))}
               {filteredRecords.length > 3 && (
@@ -146,8 +156,11 @@ export function DispatchGenerateModal({ dispatchData, onClose }: DispatchGenerat
         {uniqueBookNumbers.length > 0 && (
           <div className="text-xs text-gray-400">
             <p className="font-medium mb-1">Available book numbers:</p>
-            <p>{uniqueBookNumbers.slice(0, 10).join(", ")}
-            {uniqueBookNumbers.length > 10 && ` and ${uniqueBookNumbers.length - 10} more...`}</p>
+            <p>
+              {uniqueBookNumbers.slice(0, 10).join(", ")}
+              {uniqueBookNumbers.length > 10 &&
+                ` and ${uniqueBookNumbers.length - 10} more...`}
+            </p>
           </div>
         )}
       </div>
