@@ -410,6 +410,7 @@ export const exportSalesSummaryByDatePDF = (
   );
 };
 
+
 // 2. Sales Summary by Station
 export const exportSalesSummaryByStationPDF = (
   data: InventoryItem[],
@@ -896,7 +897,7 @@ export const exportSalesSummaryByDateRangePDF = (
       : "Year";
 
   const headers = [
-    periodLabel,
+    "Date",
     "No. of Bales",
     "Weight (kg)",
     "Avg. Price ($)",
@@ -912,152 +913,6 @@ export const exportSalesSummaryByDateRangePDF = (
   doc.save(filename);
 };
 
-// 4. Sales Summary by Farmer
-export const exportSalesSummaryByFarmerPDF = (
-  data: InventoryItem[],
-  filters: FarmerReportFilters
-) => {
-  if (!filters.dateFrom || !filters.dateTo) {
-    alert("Please select both start and end dates.");
-    return;
-  }
-
-  const filteredData = data.filter((item) => {
-    const price = Number.parseFloat(item.price || "0");
-    if (price <= 0) return false;
-
-    const matchesStation =
-      !filters.stationId || item.stationId === filters.stationId;
-    const matchesTobaccoType =
-      !filters.tobaccoType || item.tobaccoType === filters.tobaccoType;
-
-    const itemDate = parseDate(item.dateFormated);
-    if (!itemDate) return false;
-
-    const fromDate = new Date(filters.dateFrom);
-    const toDate = new Date(filters.dateTo);
-    const matchesDateRange = itemDate >= fromDate && itemDate <= toDate;
-
-    return matchesStation && matchesTobaccoType && matchesDateRange;
-  });
-
-  if (filteredData.length === 0) {
-    alert("No records found for the selected criteria.");
-    return;
-  }
-
-  // Group data by farmer
-  const farmerSummary = filteredData.reduce((acc, item) => {
-    const farmerId = item.farmerId;
-
-    if (!acc[farmerId]) {
-      acc[farmerId] = {
-        farmerId,
-        barcodes: new Set(),
-        totalWeight: 0,
-        totalValue: 0,
-        priceSum: 0,
-        priceCount: 0,
-      };
-    }
-
-    if (item.barcodeId) {
-      acc[farmerId].barcodes.add(item.barcodeId);
-    }
-
-    acc[farmerId].totalWeight += Number.parseFloat(item.weight || "0");
-
-    const price = Number.parseFloat(item.price);
-    const weight = Number.parseFloat(item.weight || "0");
-    acc[farmerId].totalValue += price * weight;
-    acc[farmerId].priceSum += price;
-    acc[farmerId].priceCount += 1;
-
-    return acc;
-  }, {} as Record<string, any>);
-
-  const farmerArray = Object.values(farmerSummary).map((farmer: any) => ({
-    ...farmer,
-    noOfBales: farmer.barcodes.size,
-    // Average Price per kg = Total Value / Total Weight
-    averagePrice:
-      farmer.totalWeight > 0
-        ? (farmer.totalValue / farmer.totalWeight).toFixed(2)
-        : "0.00",
-  }));
-
-  // Sort by total value descending
-  farmerArray.sort((a, b) => b.totalValue - a.totalValue);
-
-  const totals = farmerArray.reduce(
-    (acc, farmer) => ({
-      noOfBales: acc.noOfBales + farmer.noOfBales,
-      totalWeight: acc.totalWeight + farmer.totalWeight,
-      totalValue: acc.totalValue + farmer.totalValue,
-    }),
-    { noOfBales: 0, totalWeight: 0, totalValue: 0 }
-  );
-
-  const doc = new jsPDF();
-  let currentY = addCompanyHeader(doc, "Summary by Farmers");
-
-  const reportInfo = {
-    "Date From": new Date(filters.dateFrom).toLocaleDateString("en-GB"),
-    "Date To": new Date(filters.dateTo).toLocaleDateString("en-GB"),
-    "Tobacco Type": filters.tobaccoType || "Virginia / Burley",
-    Station: filters.stationId || "All Stations",
-    Generated: `${new Date().toLocaleDateString(
-      "en-GB"
-    )} ${new Date().toLocaleTimeString("en-GB")}`,
-  };
-
-  currentY = addReportInfo(doc, currentY, reportInfo);
-
-  doc.setFontSize(8);
-  doc.setFont("helvetica", "italic");
-  doc.setTextColor(127, 140, 141);
-  doc.text(
-    "Note: Only records with valid prices (> $0) are included. Average Price = Total Value ÷ Total Weight",
-    doc.internal.pageSize.width / 2,
-    currentY,
-    { align: "center" }
-  );
-  currentY += 10;
-
-  const tableData = farmerArray.map((farmer) => [
-    farmer.farmerId,
-    farmer.noOfBales.toString(),
-    farmer.totalWeight.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ","),
-    farmer.averagePrice,
-    farmer.totalValue.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ","),
-  ]);
-
-  // Calculate overall average price for totals row
-  const overallAveragePrice =
-    totals.totalWeight > 0
-      ? (totals.totalValue / totals.totalWeight).toFixed(2)
-      : "0.00";
-
-  tableData.push([
-    "TOTAL",
-    totals.noOfBales.toString(),
-    totals.totalWeight.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ","),
-    overallAveragePrice,
-    totals.totalValue.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ","),
-  ]);
-
-  const headers = [
-    "Farmer ID",
-    "No. of Bales",
-    "Weight (KG)",
-    "Avg Price",
-    "Total Value ($)",
-  ];
-  const columnWidths = [40, 30, 30, 30, 40];
-
-  addSimpleTable(doc, headers, tableData, currentY, columnWidths);
-
-  doc.save(
-    `Summary_by_Farmers_${new Date().toISOString().split("T")[0]}.pdf`
-  );
+export const exportDispatchDataPDF = async (dispatchbookNumber: string) => {
+  alert("Export Dispatch Data to PDF functionality is not yet implemented.");
 };

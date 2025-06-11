@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import {
   Popover,
@@ -30,6 +31,7 @@ export function ExportPopover({
   openFarmerModal,
 }: ExportPopoverProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const router = useRouter();
 
   const handleModalOpen = (openFn: () => void) => {
     setIsOpen(false);
@@ -37,8 +39,13 @@ export function ExportPopover({
   };
 
   const handleFarmerClick = () => {
-    console.log("Farmer button clicked"); // Debug log
+    console.log("Farmer button clicked");
     handleModalOpen(openFarmerModal);
+  };
+
+  const handleDispatchClick = () => {
+    setIsOpen(false);
+    router.push('/dispatch');
   };
 
   return (
@@ -56,40 +63,21 @@ export function ExportPopover({
           <div className="px-2 py-1.5 text-sm font-medium text-gray-700 border-b">
             Export Options
           </div>
-
-          {/* <Button
-            onClick={exportToExcel}
-            variant="ghost"
-            size="sm"
-            className="w-full justify-start h-auto py-2"
-          >
-            <Download className="h-4 w-4 mr-3" />
-            <div className="text-left">
-              <div className="font-medium">Export CSV</div>
-              <div className="text-xs text-gray-500">
-                Download filtered data as CSV
-              </div>
-            </div>
-          </Button> */}
-
-          {/* <Button
-            onClick={exportToPDF}
+          
+          <Button
+            onClick={handleDispatchClick}
             variant="ghost"
             size="sm"
             className="w-full justify-start h-auto py-2"
           >
             <FileText className="h-4 w-4 mr-3" />
             <div className="text-left">
-              <div className="font-medium">Export PDF</div>
+              <div className="font-medium">Dispatch Management</div>
               <div className="text-xs text-gray-500">
-                Current filtered data summary
+                Manage and generate dispatch documents
               </div>
             </div>
           </Button>
-
-          <div className="px-2 py-1.5 text-xs font-medium text-gray-500 border-t border-b">
-            Summary Reports
-          </div> */}
 
           <Button
             onClick={() => handleModalOpen(openStationSummaryModal)}
