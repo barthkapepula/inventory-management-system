@@ -55,6 +55,8 @@ export function FarmerSummaryModal({
   });
 
   const [stationOpen, setStationOpen] = useState(false);
+  const [stationSearch, setStationSearch] = useState("");
+  const [showStationOptions, setShowStationOptions] = useState(false);
 
   // Get unique values for dropdowns
   const uniqueStations = [...new Set(data.map((item) => item.stationId))].sort();
@@ -77,6 +79,22 @@ export function FarmerSummaryModal({
       stationId: "",
       tobaccoType: "",
     });
+    setStationSearch("");
+    setShowStationOptions(false);
+  };
+
+  const handleStationSearch = (value: string) => {
+    setStationSearch(value);
+    if (value.trim() === "") {
+      setShowStationOptions(false);
+    }
+  };
+
+  const handleStationKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      setShowStationOptions(true);
+    }
   };
 
   return (
@@ -125,54 +143,117 @@ export function FarmerSummaryModal({
                   aria-expanded={stationOpen}
                   className="w-full justify-between"
                 >
-                  {filters.stationId
-                    ? uniqueStations.find((station) => station === filters.stationId)
-                    : "Select station or leave empty for all"}
+
+
+
+                  {filters.stationId || "Type station ID and press Enter to search"}
                   <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-full p-0">
                 <Command>
-                  <CommandInput placeholder="Search stations..." />
-                  <CommandEmpty>No station found.</CommandEmpty>
-                  <CommandGroup>
-                    <CommandItem
-                      value=""
-                      onSelect={() => {
-                        setFilters({ ...filters, stationId: "" });
-                        setStationOpen(false);
-                      }}
-                    >
-                      <Check
-                        className={cn(
-                          "mr-2 h-4 w-4",
-                          filters.stationId === "" ? "opacity-100" : "opacity-0"
-                        )}
-                      />
-                      All Stations
-                    </CommandItem>
-                    {uniqueStations.map((station) => (
-                      <CommandItem
-                        key={station}
-                        value={station}
-                        onSelect={(currentValue) => {
-                          setFilters({ 
-                            ...filters, 
-                            stationId: currentValue === filters.stationId ? "" : currentValue 
-                          });
-                          setStationOpen(false);
-                        }}
-                      >
-                        <Check
-                          className={cn(
-                            "mr-2 h-4 w-4",
-                            filters.stationId === station ? "opacity-100" : "opacity-0"
-                          )}
-                        />
-                        {station}
-                      </CommandItem>
-                    ))}
-                  </CommandGroup>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                  <CommandInput 
+                    placeholder="Type station ID and press Enter..." 
+                    value={stationSearch}
+                    onValueChange={handleStationSearch}
+                    onKeyDown={handleStationKeyDown}
+                  />
+                  {!showStationOptions && (
+                    <div className="p-2 text-sm text-gray-500 text-center">
+                      Type a station ID and press Enter to see matching options
+                    </div>
+                  )}
+                  {showStationOptions && (
+                    <>
+                      <CommandEmpty>No station found.</CommandEmpty>
+                      <CommandGroup>
+                        <CommandItem
+                          value=""
+                          onSelect={() => {
+                            setFilters({ ...filters, stationId: "" });
+                            setStationOpen(false);
+                            setStationSearch("");
+                            setShowStationOptions(false);
+                          }}
+                        >
+                          <Check
+                            className={cn(
+                              "mr-2 h-4 w-4",
+                              filters.stationId === "" ? "opacity-100" : "opacity-0"
+                            )}
+                          />
+                          All Stations
+                        </CommandItem>
+                        {uniqueStations
+                          .filter(station => 
+                            station.toLowerCase().includes(stationSearch.toLowerCase())
+                          )
+                          .map((station) => (
+                            <CommandItem
+                              key={station}
+                              value={station}
+                              onSelect={(currentValue) => {
+                                setFilters({ 
+                                  ...filters, 
+                                  stationId: currentValue === filters.stationId ? "" : currentValue 
+                                });
+                                setStationOpen(false);
+                                setStationSearch("");
+                                setShowStationOptions(false);
+                              }}
+                            >
+                              <Check
+                                className={cn(
+                                  "mr-2 h-4 w-4",
+                                  filters.stationId === station ? "opacity-100" : "opacity-0"
+                                )}
+                              />
+                              {station}
+                            </CommandItem>
+                          ))}
+                      </CommandGroup>
+                    </>
+                  )}
                 </Command>
               </PopoverContent>
             </Popover>

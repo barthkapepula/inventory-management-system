@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -9,7 +10,20 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { FileText } from "lucide-react";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+} from "@/components/ui/command";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { FileText, Check, ChevronsUpDown } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { BuyerReportFilters } from "./types";
 
 interface BuyerModalProps {
@@ -31,7 +45,42 @@ export function BuyerModal({
   uniqueTobaccoTypes,
   uniqueStationIds,
 }: BuyerModalProps) {
+  const [stationOpen, setStationOpen] = useState(false);
+  const [tobaccoTypeOpen, setTobaccoTypeOpen] = useState(false);
+  const [stationSearch, setStationSearch] = useState("");
+  const [tobaccoSearch, setTobaccoSearch] = useState("");
+  const [showStationOptions, setShowStationOptions] = useState(false);
+  const [showTobaccoOptions, setShowTobaccoOptions] = useState(false);
+
   if (!isOpen) return null;
+
+  const handleStationSearch = (value: string) => {
+    setStationSearch(value);
+    if (value.trim() === "") {
+      setShowStationOptions(false);
+    }
+  };
+
+  const handleStationKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      setShowStationOptions(true);
+    }
+  };
+
+  const handleTobaccoSearch = (value: string) => {
+    setTobaccoSearch(value);
+    if (value.trim() === "") {
+      setShowTobaccoOptions(false);
+    }
+  };
+
+  const handleTobaccoKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      setShowTobaccoOptions(true);
+    }
+  };
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
@@ -45,69 +94,170 @@ export function BuyerModal({
             <label htmlFor="stationId" className="text-sm font-medium mb-2 block">
               Station ID (Optional)
             </label>
-            <Input
-              id="stationId"
-              type="text"
-              value={filters.stationId || ""}
-              onChange={(e) =>
-                setFilters({
-                  ...filters,
-                  stationId: e.target.value === "" ? undefined : e.target.value,
-                })
-              }
-              placeholder="Enter station ID or leave empty for all"
-            />
-            
-            {/* Select dropdown (commented out)
-            <Select
-              value={filters.stationId || ""}
-              onValueChange={(value) =>
-                setFilters({
-                  ...filters,
-                  stationId: value === "all" ? undefined : value,
-                })
-              }
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="All Stations" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Stations</SelectItem>
-                {uniqueStationIds.map((station) => (
-                  <SelectItem key={station} value={station}>
-                    {station}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            */}
+            <Popover open={stationOpen} onOpenChange={setStationOpen}>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  role="combobox"
+                  aria-expanded={stationOpen}
+                  className="w-full justify-between"
+                >
+                  {filters.stationId || "Type station ID and press Enter to search"}
+                  <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-full p-0">
+                <Command>
+                  <CommandInput 
+                    placeholder="Type station ID and press Enter..." 
+                    value={stationSearch}
+                    onValueChange={handleStationSearch}
+                    onKeyDown={handleStationKeyDown}
+                  />
+                  {!showStationOptions && (
+                    <div className="p-2 text-sm text-gray-500 text-center">
+                      Type a station ID and press Enter to see matching options
+                    </div>
+                  )}
+                  {showStationOptions && (
+                    <>
+                      <CommandEmpty>No station found.</CommandEmpty>
+                      <CommandGroup>
+                        <CommandItem
+                          value=""
+                          onSelect={() => {
+                            setFilters({ ...filters, stationId: undefined });
+                            setStationOpen(false);
+                            setStationSearch("");
+                            setShowStationOptions(false);
+                          }}
+                        >
+                          <Check
+                            className={cn(
+                              "mr-2 h-4 w-4",
+                              !filters.stationId ? "opacity-100" : "opacity-0"
+                            )}
+                          />
+                          All Stations
+                        </CommandItem>
+                        {uniqueStationIds
+                          .filter(station => 
+                            station.toLowerCase().includes(stationSearch.toLowerCase())
+                          )
+                          .map((station) => (
+                            <CommandItem
+                              key={station}
+                              value={station}
+                              onSelect={(currentValue) => {
+                                setFilters({ 
+                                  ...filters, 
+                                  stationId: currentValue === filters.stationId ? undefined : currentValue 
+                                });
+                                setStationOpen(false);
+                                setStationSearch("");
+                                setShowStationOptions(false);
+                              }}
+                            >
+                              <Check
+                                className={cn(
+                                  "mr-2 h-4 w-4",
+                                  filters.stationId === station ? "opacity-100" : "opacity-0"
+                                )}
+                              />
+                              {station}
+                            </CommandItem>
+                          ))}
+                      </CommandGroup>
+                    </>
+                  )}
+                </Command>
+              </PopoverContent>
+            </Popover>
           </div>
 
           <div>
             <label className="text-sm font-medium mb-2 block">
               Tobacco Type (Optional)
             </label>
-            <Select
-              value={filters.tobaccoType || ""}
-              onValueChange={(value:any) =>
-                setFilters({
-                  ...filters,
-                  tobaccoType: value === "all" ? undefined : value,
-                })
-              }
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="All Types" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Types</SelectItem>
-                {uniqueTobaccoTypes.map((type) => (
-                  <SelectItem key={type} value={type}>
-                    {type}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <Popover open={tobaccoTypeOpen} onOpenChange={setTobaccoTypeOpen}>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  role="combobox"
+                  aria-expanded={tobaccoTypeOpen}
+                  className="w-full justify-between"
+                >
+                  {filters.tobaccoType || "Type tobacco type and press Enter to search"}
+                  <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-full p-0">
+                <Command>
+                  <CommandInput 
+                    placeholder="Type tobacco type and press Enter..." 
+                    value={tobaccoSearch}
+                    onValueChange={handleTobaccoSearch}
+                    onKeyDown={handleTobaccoKeyDown}
+                  />
+                  {!showTobaccoOptions && (
+                    <div className="p-2 text-sm text-gray-500 text-center">
+                      Type a tobacco type and press Enter to see matching options
+                    </div>
+                  )}
+                  {showTobaccoOptions && (
+                    <>
+                      <CommandEmpty>No tobacco type found.</CommandEmpty>
+                      <CommandGroup>
+                        <CommandItem
+                          value=""
+                          onSelect={() => {
+                            setFilters({ ...filters, tobaccoType: undefined });
+                            setTobaccoTypeOpen(false);
+                            setTobaccoSearch("");
+                            setShowTobaccoOptions(false);
+                          }}
+                        >
+                          <Check
+                            className={cn(
+                              "mr-2 h-4 w-4",
+                              !filters.tobaccoType ? "opacity-100" : "opacity-0"
+                            )}
+                          />
+                          All Types
+                        </CommandItem>
+                        {uniqueTobaccoTypes
+                          .filter(type => 
+                            type.toLowerCase().includes(tobaccoSearch.toLowerCase())
+                          )
+                          .map((type) => (
+                            <CommandItem
+                              key={type}
+                              value={type}
+                              onSelect={(currentValue) => {
+                                setFilters({ 
+                                  ...filters, 
+                                  tobaccoType: currentValue === filters.tobaccoType ? undefined : currentValue 
+                                });
+                                setTobaccoTypeOpen(false);
+                                setTobaccoSearch("");
+                                setShowTobaccoOptions(false);
+                              }}
+                            >
+                              <Check
+                                className={cn(
+                                  "mr-2 h-4 w-4",
+                                  filters.tobaccoType === type ? "opacity-100" : "opacity-0"
+                                )}
+                              />
+                              {type}
+                            </CommandItem>
+                          ))}
+                      </CommandGroup>
+                    </>
+                  )}
+                </Command>
+              </PopoverContent>
+            </Popover>
           </div>
 
           <div>
@@ -162,6 +312,10 @@ export function BuyerModal({
                 dateFrom: "",
                 dateTo: "",
               });
+              setStationSearch("");
+              setTobaccoSearch("");
+              setShowStationOptions(false);
+              setShowTobaccoOptions(false);
             }}
             variant="outline"
             className="flex-1"
