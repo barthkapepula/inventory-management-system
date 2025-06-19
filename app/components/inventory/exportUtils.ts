@@ -916,3 +916,147 @@ export const exportSalesSummaryByDateRangePDF = (
 export const exportDispatchDataPDF = async (dispatchbookNumber: string) => {
   alert("Export Dispatch Data to PDF functionality is not yet implemented.");
 };
+
+// 4. Sales Summary by Farmer
+export const exportSalesSummaryByFarmerPDF = (
+  data: InventoryItem[],
+  filters: FarmerReportFilters
+) => {
+  if (!filters.dateFrom || !filters.dateTo) {
+    alert("Please select both start and end dates.");
+    return;
+  }
+
+  const filteredData = data.filter((item) => {
+    const price = Number.parseFloat(item.price || "0");
+    if (price <= 0) return false;
+
+    const matchesStation =
+      !filters.stationId || item.stationId === filters.stationId;
+    const matchesTobaccoType =
+      !filters.tobaccoType || item.tobaccoType === filters.tobaccoType;
+
+    const itemDate = parseDate(item.dateFormated);
+    if (!itemDate) return false;
+
+    const fromDate = new Date(filters.dateFrom);
+    const toDate = new Date(filters.dateTo);
+    const matchesDateRange = itemDate >= fromDate && itemDate <= toDate;
+
+    return matchesStation && matchesTobaccoType && matchesDateRange;
+  });
+
+  if (filteredData.length === 0) {
+    alert("No records found for the selected criteria.");
+    return;
+  }
+
+  // Group data by farmer
+  const farmerSummary = filteredData.reduce((acc, item) => {
+    const farmerId = item.farmerId;
+
+    if (!acc[farmerId]) {
+      acc[farmerId] = {
+        farmerId,
+        barcodes: new Set(),
+        totalWeight: 0,
+        totalValue: 0,
+        priceSum: 0,
+        priceCount: 0,
+      };
+    }
+
+    if (item.barcodeId) {
+      acc[farmerId].barcodes.add(item.barcodeId);
+    }
+
+    acc[farmerId].totalWeight += Number.parseFloat(item.weight || "0");
+
+    const price = Number.parseFloat(item.price);
+    const weight = Number.parseFloat(item.weight || "0");
+    acc[farmerId].totalValue += price * weight;
+    acc[farmerId].priceSum += price;
+    acc[farmerId].priceCount += 1;
+
+    return acc;
+  }, {} as Record<string, any>);
+
+  const farmerArray = Object.values(farmerSummary).map((farmer: any) => ({
+    ...farmer,
+    noOfBales: farmer.barcodes.size,
+    averagePrice:
+      farmer.priceCount > 0
+        ? (farmer.priceSum / farmer.priceCount).toFixed(2)
+        : "0.00",
+  }));
+
+  // Sort by farmer ID
+  farmerArray.sort((a, b) => a.farmerId.localeCompare(b.farmerId));
+
+  const totals = farmerArray.reduce(
+    (acc, item) => ({
+      noOfBales: acc.noOfBales + item.noOfBales,
+      totalWeight: acc.totalWeight + item.totalWeight,
+      totalValue: acc.totalValue + item.totalValue,
+    }),
+    { noOfBales: 0, totalWeight: 0, totalValue: 0 }
+  );
+
+  const doc = new jsPDF();
+  let currentY = addCompanyHeader(doc, "Sales Summary by Farmer");
+
+  const reportInfo = {
+    Period: `${new Date(filters.dateFrom).toLocaleDateString(
+      "en-GB"
+    )} to ${new Date(filters.dateTo).toLocaleDateString("en-GB")}`,
+    Station: filters.stationId || "ALL STATIONS",
+    "Tobacco Type": filters.tobaccoType || "ALL TYPES",
+    Generated: `${new Date().toLocaleDateString(
+      "en-GB"
+    )} ${new Date().toLocaleTimeString("en-GB")}`,
+  };
+
+  currentY = addReportInfo(doc, currentY, reportInfo);
+
+  doc.setFontSize(8);
+  doc.setFont("helvetica", "italic");
+  doc.setTextColor(127, 140, 141);
+  doc.text(
+    "Note: Only records with valid prices (> $0) are included in this summary",
+    doc.internal.pageSize.width / 2,
+    currentY,
+    { align: "center" }
+  );
+  currentY += 10;
+
+  const tableData = farmerArray.map((farmer) => [
+    farmer.farmerId,
+    farmer.noOfBales.toString(),
+    farmer.totalWeight.toFixed(2),
+    farmer.averagePrice,
+    farmer.totalValue.toFixed(2),
+  ]);
+
+  tableData.push([
+    "GRAND TOTAL",
+    totals.noOfBales.toString(),
+    totals.totalWeight.toFixed(2),
+    "—",
+    totals.totalValue.toFixed(2),
+  ]);
+
+  const headers = [
+    "Farmer ID",
+    "No. of Bales",
+    "Weight (kg)",
+    "Avg. Price ($)",
+    "Total Value ($)",
+  ];
+  const columnWidths = [40, 30, 30, 30, 40];
+
+  addSimpleTable(doc, headers, tableData, currentY, columnWidths);
+
+  doc.save(
+    `Sales_Summary_By_Farmer_${new Date().toISOString().split("T")[0]}.pdf`
+  );
+};

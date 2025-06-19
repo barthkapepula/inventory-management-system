@@ -19,7 +19,7 @@ import {
 } from "@/components/ui/select";
 import { Calendar, Download } from "lucide-react";
 import { InventoryItem, FarmerReportFilters } from "./types";
-import { exportSalesSummaryByFarmerPDF } from "./exportUtils";
+import {  exportSalesSummaryByFarmerPDF } from "./exportUtils";
 
 interface FarmerSummaryModalProps {
   isOpen: boolean;
@@ -52,8 +52,8 @@ export function FarmerSummaryModal({
     }
 
     exportSalesSummaryByFarmerPDF(data, filters);
-    onClose();
-  };
+      onClose();
+    };
 
   const handleReset = () => {
     setFilters({
