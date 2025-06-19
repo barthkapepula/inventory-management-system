@@ -116,7 +116,7 @@ export function SalesDateModal({
               required
             />
           </div>
-              </div>
+              
           <div>
             <label className="text-sm font-medium mb-2 block">
               Tobacco Type (Optional)
@@ -185,7 +185,7 @@ export function SalesDateModal({
             </Select>
             */}
           </div>
-
+</div>
           <div className="text-sm text-gray-600 bg-blue-50 p-3 rounded-md">
             <strong>Note:</strong> This report will show {filters.reportType}{" "}
             sales summaries for the selected date range, including total bales,
