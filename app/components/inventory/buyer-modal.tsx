@@ -50,7 +50,7 @@ export function BuyerModal({
   const [stationSearch, setStationSearch] = useState("");
   const [tobaccoSearch, setTobaccoSearch] = useState("");
   const [showStationOptions, setShowStationOptions] = useState(false);
-  const [showTobaccoOptions, setShowTobaccoOptions] = useState(false);
+
 
   if (!isOpen) return null;
 
@@ -68,19 +68,7 @@ export function BuyerModal({
     }
   };
 
-  const handleTobaccoSearch = (value: string) => {
-    setTobaccoSearch(value);
-    if (value.trim() === "") {
-      setShowTobaccoOptions(false);
-    }
-  };
 
-  const handleTobaccoKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter") {
-      e.preventDefault();
-      setShowTobaccoOptions(true);
-    }
-  };
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
@@ -92,7 +80,7 @@ export function BuyerModal({
         <div className="space-y-4">
           <div>
             <label htmlFor="stationId" className="text-sm font-medium mb-2 block">
-              Station ID (Optional)
+              Station ID 
             </label>
             <Popover open={stationOpen} onOpenChange={setStationOpen}>
               <PopoverTrigger asChild>
@@ -179,87 +167,26 @@ export function BuyerModal({
             <label className="text-sm font-medium mb-2 block">
               Tobacco Type (Optional)
             </label>
-            <Popover open={tobaccoTypeOpen} onOpenChange={setTobaccoTypeOpen}>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  role="combobox"
-                  aria-expanded={tobaccoTypeOpen}
-                  className="w-full justify-between"
-                >
-                  {filters.tobaccoType || "Type tobacco type and press Enter to search"}
-                  <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-full p-0">
-                <Command>
-                  <CommandInput 
-                    placeholder="Type tobacco type and press Enter..." 
-                    value={tobaccoSearch}
-                    onValueChange={handleTobaccoSearch}
-                    onKeyDown={handleTobaccoKeyDown}
-                  />
-                  {!showTobaccoOptions && (
-                    <div className="p-2 text-sm text-gray-500 text-center">
-                      Type a tobacco type and press Enter to see matching options
-                    </div>
-                  )}
-                  {showTobaccoOptions && (
-                    <>
-                      <CommandEmpty>No tobacco type found.</CommandEmpty>
-                      <CommandGroup>
-                        <CommandItem
-                          value=""
-                          onSelect={() => {
-                            setFilters({ ...filters, tobaccoType: undefined });
-                            setTobaccoTypeOpen(false);
-                            setTobaccoSearch("");
-                            setShowTobaccoOptions(false);
-                          }}
-                        >
-                          <Check
-                            className={cn(
-                              "mr-2 h-4 w-4",
-                              !filters.tobaccoType ? "opacity-100" : "opacity-0"
-                            )}
-                          />
-                          All Types
-                        </CommandItem>
-                        {uniqueTobaccoTypes
-                          .filter(type => 
-                            type.toLowerCase().includes(tobaccoSearch.toLowerCase())
-                          )
-                          .map((type) => (
-                            <CommandItem
-                              key={type}
-                              value={type}
-                              onSelect={(currentValue) => {
-                                setFilters({ 
-                                  ...filters, 
-                                  tobaccoType: currentValue === filters.tobaccoType ? undefined : currentValue 
-                                });
-                                setTobaccoTypeOpen(false);
-                                setTobaccoSearch("");
-                                setShowTobaccoOptions(false);
-                              }}
-                            >
-                              <Check
-                                className={cn(
-                                  "mr-2 h-4 w-4",
-                                  filters.tobaccoType === type ? "opacity-100" : "opacity-0"
-                                )}
-                              />
-                              {type}
-                            </CommandItem>
-                          ))}
-                      </CommandGroup>
-                    </>
-                  )}
-                </Command>
-              </PopoverContent>
-            </Popover>
+            <Select
+              value={filters.tobaccoType}
+              onValueChange={(value) =>
+                setFilters({ ...filters, tobaccoType: value === "all" ? "" : value })
+              }
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select tobacco type or leave empty for all" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Types</SelectItem>
+                {uniqueTobaccoTypes.map((type) => (
+                  <SelectItem key={type} value={type}>
+                    {type}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
-
+        <div className="grid grid-cols-2 gap-4">
           <div>
             <label className="text-sm font-medium mb-2 block">
               Date From *
@@ -285,7 +212,7 @@ export function BuyerModal({
               required
             />
           </div>
-
+        </div>
           <div className="text-sm text-gray-600 bg-blue-50 p-3 rounded-md">
             <strong>Note:</strong> This report will show a summary of all
             buyers' activities for the selected date range and filters,
@@ -315,7 +242,6 @@ export function BuyerModal({
               setStationSearch("");
               setTobaccoSearch("");
               setShowStationOptions(false);
-              setShowTobaccoOptions(false);
             }}
             variant="outline"
             className="flex-1"

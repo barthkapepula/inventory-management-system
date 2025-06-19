@@ -89,7 +89,8 @@ export function SalesDateModal({
                 "Shows sales data grouped by year"}
             </p>
           </div>
-
+          
+        <div className="grid grid-cols-2 gap-4">
           <div>
             <label className="text-sm font-medium mb-2 block">
               Date From *
@@ -115,7 +116,7 @@ export function SalesDateModal({
               required
             />
           </div>
-
+              </div>
           <div>
             <label className="text-sm font-medium mb-2 block">
               Tobacco Type (Optional)

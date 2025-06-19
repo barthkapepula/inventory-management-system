@@ -10,20 +10,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-} from "@/components/ui/command";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import { FileText, Check, ChevronsUpDown } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { FileText } from "lucide-react";
 
 interface StationSummaryFilters {
   dateFrom: string;
@@ -48,31 +35,11 @@ export function StationSummaryModal({
   onExport,
   uniqueTobaccoTypes,
 }: StationSummaryModalProps) {
-  const [tobaccoTypeOpen, setTobaccoTypeOpen] = useState(false);
-  const [tobaccoSearch, setTobaccoSearch] = useState("");
-  const [showTobaccoOptions, setShowTobaccoOptions] = useState(false);
-
   if (!isOpen) return null;
 
   const handleClose = () => {
     onClose();
     setFilters({ dateFrom: "", dateTo: "", tobaccoType: "" });
-    setTobaccoSearch("");
-    setShowTobaccoOptions(false);
-  };
-
-  const handleTobaccoSearch = (value: string) => {
-    setTobaccoSearch(value);
-    if (value.trim() === "") {
-      setShowTobaccoOptions(false);
-    }
-  };
-
-  const handleTobaccoKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter") {
-      e.preventDefault();
-      setShowTobaccoOptions(true);
-    }
   };
 
   return (
@@ -81,8 +48,9 @@ export function StationSummaryModal({
         <h2 className="text-lg sm:text-xl font-bold mb-4">
           Export Summary by Station
         </h2>
-
         <div className="space-y-4">
+
+        <div className="grid grid-cols-2 gap-4">
           <div>
             <label className="text-sm font-medium mb-2 block">
               Date From *
@@ -96,7 +64,7 @@ export function StationSummaryModal({
               required
             />
           </div>
-
+              
           <div>
             <label className="text-sm font-medium mb-2 block">Date To *</label>
             <Input
@@ -108,7 +76,7 @@ export function StationSummaryModal({
               required
             />
           </div>
-
+              </div>
           <div>
             <label className="text-sm font-medium mb-2 block">
               Tobacco Type (Optional)
@@ -116,22 +84,19 @@ export function StationSummaryModal({
             <Select
               value={filters.tobaccoType}
               onValueChange={(value) =>
-                                setFilters({ 
-                                  ...filters, 
-                  tobaccoType: value === "all" ? "" : value,
-                })
+                setFilters({ ...filters, tobaccoType: value === "all" ? "" : value })
               }
             >
               <SelectTrigger>
-                <SelectValue placeholder="All Types" />
+                <SelectValue placeholder="Select tobacco type or leave empty for all" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Types</SelectItem>
                 {uniqueTobaccoTypes.map((type) => (
                   <SelectItem key={type} value={type}>
-                              {type}
+                    {type}
                   </SelectItem>
-                          ))}
+                ))}
               </SelectContent>
             </Select>
           </div>
