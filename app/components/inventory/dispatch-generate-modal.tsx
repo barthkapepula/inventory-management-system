@@ -84,7 +84,7 @@ export function DispatchGenerateModal({
       onClose();
     } catch (error) {
       console.error("Error generating dispatch PDF:", error);
-      alert("Error generating PDF. Please try again.");
+      toast.success("Error generating PDF. Please try again.");
     } finally {
       setIsLoading(false);
     }
