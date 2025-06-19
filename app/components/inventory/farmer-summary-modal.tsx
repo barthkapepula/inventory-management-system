@@ -17,9 +17,22 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Calendar, Download } from "lucide-react";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+} from "@/components/ui/command";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Calendar, Download, Check, ChevronsUpDown } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { InventoryItem, FarmerReportFilters } from "./types";
-import {  exportSalesSummaryByFarmerPDF } from "./exportUtils";
+import { exportSalesSummaryByFarmerPDF } from "./exportUtils";
 
 interface FarmerSummaryModalProps {
   isOpen: boolean;
@@ -41,6 +54,8 @@ export function FarmerSummaryModal({
     tobaccoType: "",
   });
 
+  const [stationOpen, setStationOpen] = useState(false);
+
   // Get unique values for dropdowns
   const uniqueStations = [...new Set(data.map((item) => item.stationId))].sort();
   const uniqueTobaccoTypes = [...new Set(data.map((item) => item.tobaccoType))].sort();
@@ -52,8 +67,8 @@ export function FarmerSummaryModal({
     }
 
     exportSalesSummaryByFarmerPDF(data, filters);
-      onClose();
-    };
+    onClose();
+  };
 
   const handleReset = () => {
     setFilters({
@@ -101,37 +116,66 @@ export function FarmerSummaryModal({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="stationId">Station</Label>
-            <Input
-              id="stationId"
-              type="text"
-              value={filters.stationId}
-              onChange={(e) =>
-                setFilters({ ...filters, stationId: e.target.value })
-              }
-              placeholder="Enter station ID or leave empty for all"
-            />
-            
-            {/* Select dropdown (commented out)
-            <Select
-              value={filters.stationId}
-              onValueChange={(value) =>
-                setFilters({ ...filters, stationId: value === "all" ? "" : value })
-              }
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select station or leave empty for all" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Stations</SelectItem>
-                {uniqueStations.map((station) => (
-                  <SelectItem key={station} value={station}>
-                    {station}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            */}
+            <Label>Station</Label>
+            <Popover open={stationOpen} onOpenChange={setStationOpen}>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  role="combobox"
+                  aria-expanded={stationOpen}
+                  className="w-full justify-between"
+                >
+                  {filters.stationId
+                    ? uniqueStations.find((station) => station === filters.stationId)
+                    : "Select station or leave empty for all"}
+                  <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-full p-0">
+                <Command>
+                  <CommandInput placeholder="Search stations..." />
+                  <CommandEmpty>No station found.</CommandEmpty>
+                  <CommandGroup>
+                    <CommandItem
+                      value=""
+                      onSelect={() => {
+                        setFilters({ ...filters, stationId: "" });
+                        setStationOpen(false);
+                      }}
+                    >
+                      <Check
+                        className={cn(
+                          "mr-2 h-4 w-4",
+                          filters.stationId === "" ? "opacity-100" : "opacity-0"
+                        )}
+                      />
+                      All Stations
+                    </CommandItem>
+                    {uniqueStations.map((station) => (
+                      <CommandItem
+                        key={station}
+                        value={station}
+                        onSelect={(currentValue) => {
+                          setFilters({ 
+                            ...filters, 
+                            stationId: currentValue === filters.stationId ? "" : currentValue 
+                          });
+                          setStationOpen(false);
+                        }}
+                      >
+                        <Check
+                          className={cn(
+                            "mr-2 h-4 w-4",
+                            filters.stationId === station ? "opacity-100" : "opacity-0"
+                          )}
+                        />
+                        {station}
+                      </CommandItem>
+                    ))}
+                  </CommandGroup>
+                </Command>
+              </PopoverContent>
+            </Popover>
           </div>
 
           <div className="space-y-2">
