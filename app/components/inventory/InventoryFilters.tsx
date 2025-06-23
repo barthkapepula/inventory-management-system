@@ -71,22 +71,11 @@ export function InventoryFilters({
 
           <div>
             <label className="text-sm font-medium mb-2 block">Farmer ID</label>
-            <Select
+            <Input
+              placeholder="Farmer ID"
               value={filters.farmerId}
-              onValueChange={(value) => setFilters((prev) => ({ ...prev, farmerId: value }))}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="All Farmers" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Farmers</SelectItem>
-                {uniqueFarmerIds.map((id) => (
-                  <SelectItem key={id} value={id}>
-                    {id}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+              onChange={(e) => setFilters((prev) => ({ ...prev, farmerId: e.target.value }))}
+            />
           </div>
 
           <div>
