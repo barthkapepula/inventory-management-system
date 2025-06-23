@@ -725,6 +725,8 @@ export const exportToPDF = (data: InventoryItem[], filters: Filters) => {
     dateTo: filters.dateTo || "",
     stationId: filters.stationId,
     tobaccoType: filters.tobaccoType,
+    farmerId: filters.farmerId,
+    buyerId: filters.buyerId,
   };
 
   exportSalesSummaryByDatePDF(data, dateRangeFilters);
