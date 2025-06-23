@@ -52,15 +52,24 @@ export function FarmerSummaryModal({
     dateTo: "",
     stationId: "",
     tobaccoType: "",
-  });
+    farmerId: "",
+    buyerId: "",
+  } as FarmerReportFilters);
 
-  const [stationOpen, setStationOpen] = useState(false);
-  const [stationSearch, setStationSearch] = useState("");
-  const [showStationOptions, setShowStationOptions] = useState(false);
+  // Farmer ID search states
+  const [farmerOpen, setFarmerOpen] = useState(false);
+  const [farmerSearch, setFarmerSearch] = useState("");
+  const [showFarmerOptions, setShowFarmerOptions] = useState(false);
+
+  // Buyer ID search states
+  const [buyerOpen, setBuyerOpen] = useState(false);
+  const [buyerSearch, setBuyerSearch] = useState("");
+  const [showBuyerOptions, setShowBuyerOptions] = useState(false);
 
   // Get unique values for dropdowns
-  const uniqueStations = [...new Set(data.map((item) => item.stationId))].sort();
   const uniqueTobaccoTypes = [...new Set(data.map((item) => item.tobaccoType))].sort();
+  const uniqueFarmerIds = [...new Set(data.map((item) => item.farmerId))].sort();
+  const uniqueBuyerIds = [...new Set(data.map((item) => item.buyerId))].sort();
 
   const handleExport = () => {
     if (!filters.dateFrom || !filters.dateTo) {
@@ -68,7 +77,7 @@ export function FarmerSummaryModal({
       return;
     }
 
-    exportSalesSummaryByFarmerPDF(data, filters);
+    exportSalesSummaryByFarmerPDF(data, { ...filters });
     onClose();
   };
 
@@ -78,22 +87,42 @@ export function FarmerSummaryModal({
       dateTo: "",
       stationId: "",
       tobaccoType: "",
+      farmerId: "",
+      buyerId: "",
     });
-    setStationSearch("");
-    setShowStationOptions(false);
+    setFarmerSearch("");
+    setShowFarmerOptions(false);
+    setBuyerSearch("");
+    setShowBuyerOptions(false);
   };
 
-  const handleStationSearch = (value: string) => {
-    setStationSearch(value);
+  // Farmer ID search handlers
+  const handleFarmerSearch = (value: string) => {
+    setFarmerSearch(value);
     if (value.trim() === "") {
-      setShowStationOptions(false);
+      setShowFarmerOptions(false);
     }
   };
 
-  const handleStationKeyDown = (e: React.KeyboardEvent) => {
+  const handleFarmerKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter") {
       e.preventDefault();
-      setShowStationOptions(true);
+      setShowFarmerOptions(true);
+    }
+  };
+
+  // Buyer ID search handlers
+  const handleBuyerSearch = (value: string) => {
+    setBuyerSearch(value);
+    if (value.trim() === "") {
+      setShowBuyerOptions(false);
+    }
+  };
+
+  const handleBuyerKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      setShowBuyerOptions(true);
     }
   };
 
@@ -103,11 +132,12 @@ export function FarmerSummaryModal({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Calendar className="h-5 w-5" />
-            Summary by Farmers
+            Farmers Detailed Statement
           </DialogTitle>
         </DialogHeader>
 
         <div className="space-y-4">
+          {/* Date Range */}
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="dateFrom">From Date</Label>
@@ -116,7 +146,7 @@ export function FarmerSummaryModal({
                 type="date"
                 value={filters.dateFrom}
                 onChange={(e) =>
-                  setFilters({ ...filters, dateFrom: e.target.value })
+                  setFilters((prevFilters) => ({ ...prevFilters, dateFrom: e.target.value }))
                 }
               />
             </div>
@@ -127,85 +157,86 @@ export function FarmerSummaryModal({
                 type="date"
                 value={filters.dateTo}
                 onChange={(e) =>
-                  setFilters({ ...filters, dateTo: e.target.value })
+                  setFilters((prevFilters) => ({ ...prevFilters, dateTo: e.target.value }))
                 }
               />
             </div>
           </div>
 
+          {/* Farmer ID Search */}
           <div className="space-y-2">
-            <Label>Station</Label>
-            <Popover open={stationOpen} onOpenChange={setStationOpen}>
+            <Label>Farmer ID (Optional)</Label>
+            <Popover open={farmerOpen} onOpenChange={setFarmerOpen}>
               <PopoverTrigger asChild>
                 <Button
                   variant="outline"
                   role="combobox"
-                  aria-expanded={stationOpen}
+                  aria-expanded={farmerOpen}
                   className="w-full justify-between"
                 >
-                  {filters.stationId || "Type station ID and press Enter to search"}
+                  {filters.farmerId || "Type farmer ID and press Enter to search"}
                   <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-full p-0">
                 <Command>
                   <CommandInput 
-                    placeholder="Type station ID and press Enter..." 
-                    value={stationSearch}
-                    onValueChange={handleStationSearch}
-                    onKeyDown={handleStationKeyDown}
+                    placeholder="Type farmer ID and press Enter..." 
+                    value={farmerSearch}
+                    onValueChange={handleFarmerSearch}
+                    onKeyDown={handleFarmerKeyDown}
                   />
-                  {!showStationOptions && (
+                  {!showFarmerOptions && (
                     <div className="p-2 text-sm text-gray-500 text-center">
-                      Type a station ID and press Enter to see matching options
+                      Type a farmer ID and press Enter to see matching options
                     </div>
                   )}
-                  {showStationOptions && (
+                  {showFarmerOptions && (
                     <>
-                      <CommandEmpty>No station found.</CommandEmpty>
+                      <CommandEmpty>No farmer found.</CommandEmpty>
                       <CommandGroup>
                         <CommandItem
                           value=""
                           onSelect={() => {
-                            setFilters({ ...filters, stationId: "" });
-                            setStationOpen(false);
-                            setStationSearch("");
-                            setShowStationOptions(false);
+                            setFilters((prevFilters) => ({ ...prevFilters, farmerId: "" }));
+                            setFarmerOpen(false);
+                            setFarmerSearch("");
+                            setShowFarmerOptions(false);
                           }}
                         >
                           <Check
                             className={cn(
                               "mr-2 h-4 w-4",
-                              filters.stationId === "" ? "opacity-100" : "opacity-0"
+                              filters.farmerId === "" ? "opacity-100" : "opacity-0"
                             )}
                           />
-                          All Stations
+                          All Farmers
                         </CommandItem>
-                        {uniqueStations
-                          .filter(station => 
-                            station.toLowerCase().includes(stationSearch.toLowerCase())
+                        {uniqueFarmerIds
+                          .filter(farmerId => 
+                            farmerId.toLowerCase().includes(farmerSearch.toLowerCase())
                           )
-                          .map((station) => (
+                          .map((farmerId) => (
                             <CommandItem
-                              key={station}
-                              value={station}
+                              key={farmerId}
+                              value={farmerId}
                               onSelect={(currentValue) => {
-                                setFilters({ 
-                                  ...filters, 
-                                  stationId: currentValue === filters.stationId ? "" : currentValue 
-                                });
-                                setStationOpen(false);
-                                setStationSearch("");
-                                setShowStationOptions(false);
+                                setFilters((prevFilters) => ({
+                                  ...prevFilters,
+                                  farmerId: currentValue === prevFilters.farmerId ? "" : currentValue,
+                                }));
+                                setFarmerOpen(false);
+                                setFarmerSearch("");
+                                setShowFarmerOptions(false);
                               }}
                             >
                               <Check
                                 className={cn(
                                   "mr-2 h-4 w-4",
-                                  filters.stationId === station ? "opacity-100" : "opacity-0"
+                                  filters.farmerId === farmerId ? "opacity-100" : "opacity-0"
                                 )}
                               />
-                              {station}
+                              {farmerId}
                             </CommandItem>
                           ))}
                       </CommandGroup>
@@ -216,12 +247,97 @@ export function FarmerSummaryModal({
             </Popover>
           </div>
 
+          {/* Buyer ID Search */}
+          <div className="space-y-2">
+            <Label>Buyer ID (Optional)</Label>
+            <Popover open={buyerOpen} onOpenChange={setBuyerOpen}>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  role="combobox"
+                  aria-expanded={buyerOpen}
+                  className="w-full justify-between"
+                >
+                  {filters.buyerId || "Type buyer ID and press Enter to search"}
+                  <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-full p-0">
+                <Command>
+                  <CommandInput 
+                    placeholder="Type buyer ID and press Enter..." 
+                    value={buyerSearch}
+                    onValueChange={handleBuyerSearch}
+                    onKeyDown={handleBuyerKeyDown}
+                  />
+                  {!showBuyerOptions && (
+                    <div className="p-2 text-sm text-gray-500 text-center">
+                      Type a buyer ID and press Enter to see matching options
+                    </div>
+                  )}
+                  {showBuyerOptions && (
+                    <>
+                      <CommandEmpty>No buyer found.</CommandEmpty>
+                      <CommandGroup>
+                        <CommandItem
+                          value=""
+                          onSelect={() => {
+                            setFilters((prevFilters) => ({ ...prevFilters, buyerId: "" }));
+                            setBuyerOpen(false);
+                            setBuyerSearch("");
+                            setShowBuyerOptions(false);
+                          }}
+                        >
+                          <Check
+                            className={cn(
+                              "mr-2 h-4 w-4",
+                              filters.buyerId === "" ? "opacity-100" : "opacity-0"
+                            )}
+                          />
+                          All Buyers
+                        </CommandItem>
+                        {uniqueBuyerIds
+                          .filter(buyerId => 
+                            buyerId.toLowerCase().includes(buyerSearch.toLowerCase())
+                          )
+                          .map((buyerId) => (
+                            <CommandItem
+                              key={buyerId}
+                              value={buyerId}
+                              onSelect={(currentValue) => {
+                                setFilters((prevFilters) => ({
+                                  ...prevFilters,
+                                  buyerId: currentValue === prevFilters.buyerId ? "" : currentValue,
+                                }));
+                                setBuyerOpen(false);
+                                setBuyerSearch("");
+                                setShowBuyerOptions(false);
+                              }}
+                            >
+                              <Check
+                                className={cn(
+                                  "mr-2 h-4 w-4",
+                                  filters.buyerId === buyerId ? "opacity-100" : "opacity-0"
+                                )}
+                              />
+                              {buyerId}
+                            </CommandItem>
+                          ))}
+                      </CommandGroup>
+                    </>
+                  )}
+                </Command>
+              </PopoverContent>
+            </Popover>
+          </div>
+
+          {/* Tobacco Type */}
           <div className="space-y-2">
             <Label>Tobacco Type (Optional)</Label>
             <Select
               value={filters.tobaccoType}
               onValueChange={(value) =>
-                setFilters({ ...filters, tobaccoType: value === "all" ? "" : value })
+                setFilters((prevFilters) => ({ ...prevFilters, tobaccoType: value === "all" ? "" : value }))
               }
             >
               <SelectTrigger>
@@ -249,7 +365,7 @@ export function FarmerSummaryModal({
           </div>
 
           <div className="text-xs text-gray-500 bg-gray-50 p-3 rounded">
-            <strong>Note:</strong> This report will show sales summary grouped by farmer ID, 
+            <strong>Note:</strong> This report will show detailed sales statement grouped by farmer ID, 
             including number of bales, total weight, average price, and total value for the selected period.
           </div>
         </div>

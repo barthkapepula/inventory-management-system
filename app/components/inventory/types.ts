@@ -55,8 +55,10 @@ export interface StationReportFilters {
 export interface DateRangeFilters {
   dateFrom: string;
   dateTo: string;
-  stationId?: string;
+  stationId: string;
   tobaccoType?: string;
+  farmerId: string;
+  buyerId: string;
 }
 
 export interface BuyerReportFilters {
@@ -86,6 +88,8 @@ export interface FarmerReportFilters {
   dateTo: string;
   stationId?: string;
   tobaccoType?: string;
+  farmerId?: string;
+  buyerId?: string;
 }
 
 export interface Stats {

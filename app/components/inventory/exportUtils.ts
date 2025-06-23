@@ -739,6 +739,8 @@ export const exportStationSummaryPDF = (
     dateTo: filters.dateTo || "",
     stationId: filters.stationId,
     tobaccoType: undefined,
+    farmerId: "",
+    buyerId: "",
   };
 
   exportSalesSummaryByDatePDF(data, dateRangeFilters);
@@ -931,11 +933,19 @@ export const exportSalesSummaryByFarmerPDF = (
     const price = Number.parseFloat(item.price || "0");
     if (price <= 0) return false;
 
-    const matchesStation =
-      !filters.stationId || item.stationId === filters.stationId;
+    // Filter by Farmer ID if specified
+    const matchesFarmerId =
+      !filters.farmerId || item.farmerId === filters.farmerId;
+    
+    // Filter by Buyer ID if specified
+    const matchesBuyerId =
+      !filters.buyerId || item.buyerId === filters.buyerId;
+    
+    // Filter by Tobacco Type if specified
     const matchesTobaccoType =
       !filters.tobaccoType || item.tobaccoType === filters.tobaccoType;
 
+    // Filter by Date Range
     const itemDate = parseDate(item.dateFormated);
     if (!itemDate) return false;
 
@@ -943,7 +953,7 @@ export const exportSalesSummaryByFarmerPDF = (
     const toDate = new Date(filters.dateTo);
     const matchesDateRange = itemDate >= fromDate && itemDate <= toDate;
 
-    return matchesStation && matchesTobaccoType && matchesDateRange;
+    return matchesFarmerId && matchesBuyerId && matchesTobaccoType && matchesDateRange;
   });
 
   if (filteredData.length === 0) {
@@ -963,6 +973,8 @@ export const exportSalesSummaryByFarmerPDF = (
         totalValue: 0,
         priceSum: 0,
         priceCount: 0,
+        buyers: new Set(),
+        tobaccoTypes: new Set(),
       };
     }
 
@@ -977,6 +989,10 @@ export const exportSalesSummaryByFarmerPDF = (
     acc[farmerId].totalValue += price * weight;
     acc[farmerId].priceSum += price;
     acc[farmerId].priceCount += 1;
+    
+    // Track buyers and tobacco types for this farmer
+    acc[farmerId].buyers.add(item.buyerId);
+    acc[farmerId].tobaccoTypes.add(item.tobaccoType);
 
     return acc;
   }, {} as Record<string, any>);
@@ -988,6 +1004,8 @@ export const exportSalesSummaryByFarmerPDF = (
       farmer.priceCount > 0
         ? (farmer.priceSum / farmer.priceCount).toFixed(2)
         : "0.00",
+    buyersList: Array.from(farmer.buyers).join(", "),
+    tobaccoTypesList: Array.from(farmer.tobaccoTypes).join(", "),
   }));
 
   // Sort by farmer ID
@@ -1003,13 +1021,14 @@ export const exportSalesSummaryByFarmerPDF = (
   );
 
   const doc = new jsPDF();
-  let currentY = addCompanyHeader(doc, "Sales Summary by Farmer");
+  let currentY = addCompanyHeader(doc, "Farmers Detailed Statement");
 
   const reportInfo = {
     Period: `${new Date(filters.dateFrom).toLocaleDateString(
       "en-GB"
     )} to ${new Date(filters.dateTo).toLocaleDateString("en-GB")}`,
-    Station: filters.stationId || "ALL STATIONS",
+    "Farmer ID": filters.farmerId || "ALL FARMERS",
+    "Buyer ID": filters.buyerId || "ALL BUYERS",
     "Tobacco Type": filters.tobaccoType || "ALL TYPES",
     Generated: `${new Date().toLocaleDateString(
       "en-GB"
@@ -1022,7 +1041,7 @@ export const exportSalesSummaryByFarmerPDF = (
   doc.setFont("helvetica", "italic");
   doc.setTextColor(127, 140, 141);
   doc.text(
-    "Note: Only records with valid prices (> $0) are included in this summary",
+    "Note: Only records with valid prices (> $0) are included in this detailed statement",
     doc.internal.pageSize.width / 2,
     currentY,
     { align: "center" }
@@ -1057,6 +1076,6 @@ export const exportSalesSummaryByFarmerPDF = (
   addSimpleTable(doc, headers, tableData, currentY, columnWidths);
 
   doc.save(
-    `Sales_Summary_By_Farmer_${new Date().toISOString().split("T")[0]}.pdf`
+    `Farmers_Detailed_Statement_${new Date().toISOString().split("T")[0]}.pdf`
   );
 };
