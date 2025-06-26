@@ -16,13 +16,13 @@ export interface InventoryItem {
 }
 
 export interface Filters {
-  farmerId: string;
-  buyerId: string;
-  dateFrom: string;
-  dateTo: string;
-  search: string;
-  tobaccoType: string;
-  stationId: string;
+  farmerId?: string;
+  buyerId?: string;
+  dateFrom?: string;
+  dateTo?: string;
+  search?: string;
+  tobaccoType?: string;
+  stationId?: string;
 }
 
 export interface SortConfig {
@@ -51,14 +51,14 @@ export interface StationReportFilters {
   dateTo: string;
 }
 
-// Export filter interfaces for reports
+// Export filter interfaces for reports - made more flexible
 export interface DateRangeFilters {
   dateFrom: string;
   dateTo: string;
-  stationId: string;
+  stationId?: string;
   tobaccoType?: string;
-  farmerId: string;
-  buyerId: string;
+  farmerId?: string;
+  buyerId?: string;
 }
 
 export interface BuyerReportFilters {
@@ -71,7 +71,7 @@ export interface BuyerReportFilters {
 export interface StationSummaryFilters {
   dateFrom: string;
   dateTo: string;
-  tobaccoType: string;
+  tobaccoType?: string;
 }
 
 export interface DateBasedReportFilters {

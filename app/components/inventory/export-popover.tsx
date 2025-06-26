@@ -58,7 +58,7 @@ export function ExportPopover({
           <ChevronDown className="h-4 w-4 ml-2" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-64 p-2" align="end">
+      <PopoverContent className="w-80 p-2" align="end">
         <div className="space-y-1">
           <div className="px-2 py-1.5 text-sm font-medium text-gray-700 border-b">
             Export Options
@@ -68,12 +68,12 @@ export function ExportPopover({
             onClick={handleDispatchClick}
             variant="ghost"
             size="sm"
-            className="w-full justify-start h-auto py-2"
+            className="w-full justify-start h-auto py-3 px-3"
           >
-            <FileText className="h-4 w-4 mr-3" />
-            <div className="text-left">
-              <div className="font-medium">Dispatch Management</div>
-              <div className="text-xs text-gray-500">
+            <FileText className="h-4 w-4 mr-3 flex-shrink-0" />
+            <div className="text-left flex-1 min-w-0">
+              <div className="font-medium text-sm leading-tight">Dispatch Management</div>
+              <div className="text-xs text-gray-500 mt-0.5 leading-tight">
                 Manage and generate dispatch documents
               </div>
             </div>
@@ -83,12 +83,12 @@ export function ExportPopover({
             onClick={() => handleModalOpen(openStationSummaryModal)}
             variant="ghost"
             size="sm"
-            className="w-full justify-start h-auto py-2"
+            className="w-full justify-start h-auto py-3 px-3"
           >
-            <FileText className="h-4 w-4 mr-3" />
-            <div className="text-left">
-              <div className="font-medium">Sales Summary by All Stations</div>
-              <div className="text-xs text-gray-500">
+            <FileText className="h-4 w-4 mr-3 flex-shrink-0" />
+            <div className="text-left flex-1 min-w-0">
+              <div className="font-medium text-sm leading-tight">Sales Summary by All Stations</div>
+              <div className="text-xs text-gray-500 mt-0.5 leading-tight">
                 All stations by date & type
               </div>
             </div>
@@ -98,12 +98,12 @@ export function ExportPopover({
             onClick={() => handleModalOpen(openBuyerModal)}
             variant="ghost"
             size="sm"
-            className="w-full justify-start h-auto py-2"
+            className="w-full justify-start h-auto py-3 px-3"
           >
-            <Users className="h-4 w-4 mr-3" />
-            <div className="text-left">
-              <div className="font-medium">Sales Summary by All Buyers</div>
-              <div className="text-xs text-gray-500">
+            <Users className="h-4 w-4 mr-3 flex-shrink-0" />
+            <div className="text-left flex-1 min-w-0">
+              <div className="font-medium text-sm leading-tight">Sales Summary by All Buyers</div>
+              <div className="text-xs text-gray-500 mt-0.5 leading-tight">
                 Sales summary by all buyers
               </div>
             </div>
@@ -113,11 +113,14 @@ export function ExportPopover({
             onClick={handleFarmerClick}
             variant="ghost"
             size="sm"
-            className="w-full justify-start h-auto py-2"
+            className="w-full justify-start h-auto py-3 px-3"
           >
-            <UserCheck className="h-4 w-4 mr-3" />
-            <div className="text-left">
-              <div className="font-medium">Farmers Sales detailed statement</div>
+            <UserCheck className="h-4 w-4 mr-3 flex-shrink-0" />
+            <div className="text-left flex-1 min-w-0">
+              <div className="font-medium text-sm leading-tight">Farmers Sales Detailed Statement</div>
+              <div className="text-xs text-gray-500 mt-0.5 leading-tight">
+                Detailed sales report for farmers
+              </div>
             </div>
           </Button>
 
@@ -125,11 +128,14 @@ export function ExportPopover({
             onClick={() => handleModalOpen(openSalesDateModal)}
             variant="ghost"
             size="sm"
-            className="w-full justify-start h-auto py-2"
+            className="w-full justify-start h-auto py-3 px-3"
           >
-            <Calendar className="h-4 w-4 mr-3" />
-            <div className="text-left">
-              <div className="font-medium">Sales Summary by sales Dates</div>
+            <Calendar className="h-4 w-4 mr-3 flex-shrink-0" />
+            <div className="text-left flex-1 min-w-0">
+              <div className="font-medium text-sm leading-tight">Sales Summary by Sales Dates</div>
+              <div className="text-xs text-gray-500 mt-0.5 leading-tight">
+                Summary grouped by sales dates
+              </div>
             </div>
           </Button>
         </div>

@@ -11,6 +11,27 @@ import {
 import { parseDate } from "./utils";
 import jsPDF from "jspdf";
 
+// Helper function to check if a date falls within a date range (entire day)
+const isDateInRange = (itemDateString: string, fromDateString: string, toDateString: string): boolean => {
+  const itemDate = parseDate(itemDateString);
+  if (!itemDate) return false;
+
+  const fromDate = new Date(fromDateString);
+  const toDate = new Date(toDateString);
+  
+  // Set time to start of day for fromDate (00:00:00)
+  fromDate.setHours(0, 0, 0, 0);
+  
+  // Set time to end of day for toDate (23:59:59.999)
+  toDate.setHours(23, 59, 59, 999);
+  
+  // Set item date to start of day for comparison
+  const itemDateOnly = new Date(itemDate);
+  itemDateOnly.setHours(0, 0, 0, 0);
+  
+  return itemDateOnly >= fromDate && itemDateOnly <= toDate;
+};
+
 // Helper function to format dates based on report type
 const formatDateForGrouping = (
   dateString: string,
@@ -281,12 +302,7 @@ export const exportSalesSummaryByDatePDF = (
     const matchesTobaccoType =
       !filters.tobaccoType || item.tobaccoType === filters.tobaccoType;
 
-    const itemDate = parseDate(item.dateFormated);
-    if (!itemDate) return false;
-
-    const fromDate = new Date(filters.dateFrom);
-    const toDate = new Date(filters.dateTo);
-    const matchesDateRange = itemDate >= fromDate && itemDate <= toDate;
+    const matchesDateRange = isDateInRange(item.dateFormated, filters.dateFrom, filters.dateTo);
 
     return matchesStation && matchesTobaccoType && matchesDateRange;
   });
@@ -428,12 +444,7 @@ export const exportSalesSummaryByStationPDF = (
     const matchesTobaccoType =
       !filters.tobaccoType || item.tobaccoType === filters.tobaccoType;
 
-    const itemDate = parseDate(item.dateFormated);
-    if (!itemDate) return false;
-
-    const fromDate = new Date(filters.dateFrom);
-    const toDate = new Date(filters.dateTo);
-    const matchesDateRange = itemDate >= fromDate && itemDate <= toDate;
+    const matchesDateRange = isDateInRange(item.dateFormated, filters.dateFrom, filters.dateTo);
 
     return matchesTobaccoType && matchesDateRange;
   });
@@ -572,12 +583,7 @@ export const exportSalesSummaryByBuyerPDF = (
     const matchesTobaccoType =
       !filters.tobaccoType || item.tobaccoType === filters.tobaccoType;
 
-    const itemDate = parseDate(item.dateFormated);
-    if (!itemDate) return false;
-
-    const fromDate = new Date(filters.dateFrom);
-    const toDate = new Date(filters.dateTo);
-    const matchesDateRange = itemDate >= fromDate && itemDate <= toDate;
+    const matchesDateRange = isDateInRange(item.dateFormated, filters.dateFrom, filters.dateTo);
 
     return matchesStation && matchesTobaccoType && matchesDateRange;
   });
@@ -766,12 +772,7 @@ export const exportSalesSummaryByDateRangePDF = (
     const matchesTobaccoType =
       !filters.tobaccoType || item.tobaccoType === filters.tobaccoType;
 
-    const itemDate = parseDate(item.dateFormated);
-    if (!itemDate) return false;
-
-    const fromDate = new Date(filters.dateFrom);
-    const toDate = new Date(filters.dateTo);
-    const matchesDateRange = itemDate >= fromDate && itemDate <= toDate;
+    const matchesDateRange = isDateInRange(item.dateFormated, filters.dateFrom, filters.dateTo);
 
     return matchesStation && matchesTobaccoType && matchesDateRange;
   });
@@ -947,13 +948,8 @@ export const exportSalesSummaryByFarmerPDF = (
     const matchesTobaccoType =
       !filters.tobaccoType || item.tobaccoType === filters.tobaccoType;
 
-    // Filter by Date Range
-    const itemDate = parseDate(item.dateFormated);
-    if (!itemDate) return false;
-
-    const fromDate = new Date(filters.dateFrom);
-    const toDate = new Date(filters.dateTo);
-    const matchesDateRange = itemDate >= fromDate && itemDate <= toDate;
+    // Filter by Date Range using the new helper function
+    const matchesDateRange = isDateInRange(item.dateFormated, filters.dateFrom, filters.dateTo);
 
     return matchesFarmerId && matchesBuyerId && matchesTobaccoType && matchesDateRange;
   });
@@ -1080,4 +1076,136 @@ export const exportSalesSummaryByFarmerPDF = (
   doc.save(
     `Farmers_Detailed_Statement_${new Date().toISOString().split("T")[0]}.pdf`
   );
+};
+
+export const exportFilteredInventoryToPDF = (
+  data: InventoryItem[],
+  filters: Filters
+) => {
+  if (data.length === 0) {
+    alert("No data available to export.");
+    return;
+  }
+
+  // Calculate totals
+  const totals = data.reduce(
+    (acc, item) => {
+      // Count unique barcodes
+      if (item.barcodeId) {
+        acc.uniqueBarcodes.add(item.barcodeId);
+      }
+      
+      // Sum weight
+      acc.totalWeight += Number.parseFloat(item.weight || "0");
+      
+      // Sum USD Value (price * weight)
+      const price = Number.parseFloat(item.price || "0");
+      const weight = Number.parseFloat(item.weight || "0");
+      if (price > 0 && weight > 0) {
+        acc.totalUSDValue += price * weight;
+      }
+      
+      return acc;
+    },
+    {
+      uniqueBarcodes: new Set<string>(),
+      totalWeight: 0,
+      totalUSDValue: 0,
+    }
+  );
+
+  const doc = new jsPDF();
+  let currentY = addCompanyHeader(doc, "Filtered Inventory Report");
+
+  // Build filter info following the farmer report pattern
+  const reportInfo: { [key: string]: string } = {};
+  
+  if (filters.dateFrom && filters.dateTo) {
+    reportInfo["Period"] = `${new Date(filters.dateFrom).toLocaleDateString("en-GB")} to ${new Date(filters.dateTo).toLocaleDateString("en-GB")}`;
+  } else if (filters.dateFrom) {
+    reportInfo["Date From"] = new Date(filters.dateFrom).toLocaleDateString("en-GB");
+  } else if (filters.dateTo) {
+    reportInfo["Date To"] = new Date(filters.dateTo).toLocaleDateString("en-GB");
+  }
+  
+  reportInfo["Farmer ID"] = filters.farmerId || "ALL FARMERS";
+  reportInfo["Buyer ID"] = filters.buyerId || "ALL BUYERS";
+  reportInfo["Station ID"] = filters.stationId || "ALL STATIONS";
+  reportInfo["Tobacco Type"] = filters.tobaccoType || "ALL TYPES";
+  
+  if (filters.search) {
+    reportInfo["Search Filter"] = filters.search;
+  }
+  
+  reportInfo["Total Records"] = data.length.toString();
+  reportInfo["Generated"] = `${new Date().toLocaleDateString("en-GB")} ${new Date().toLocaleTimeString("en-GB")}`;
+
+  currentY = addReportInfo(doc, currentY, reportInfo);
+
+  // Add note following the farmer report pattern
+  doc.setFontSize(8);
+  doc.setFont("helvetica", "italic");
+  doc.setTextColor(127, 140, 141);
+  doc.text(
+    "Note: This report shows all filtered inventory records with detailed breakdown",
+    doc.internal.pageSize.width / 2,
+    currentY,
+    { align: "center" }
+  );
+  currentY += 10;
+
+  // Headers - exactly 7 columns
+  const headers = [
+    "Barcode ID",
+    "Farmer ID",
+    "Station ID", 
+    "Buyer ID",
+    "Weight (kg)",
+    "Price ($)",
+    "Total Value ($)",
+  ];
+
+  // Prepare table data - exactly 7 columns to match headers
+  const tableData = data.map((item) => {
+    const price = Number.parseFloat(item.price || "0");
+    const weight = Number.parseFloat(item.weight || "0");
+    const usdValue = price > 0 && weight > 0 ? (price * weight).toFixed(2) : "0.00";
+
+    return [
+      item.barcodeId || "-",           // Column 1: Barcode ID
+      item.farmerId || "-",            // Column 2: Farmer ID
+      item.stationId || "-",           // Column 3: Station ID
+      item.buyerId || "-",             // Column 4: Buyer ID
+      (weight || 0).toFixed(2),        // Column 5: Weight (kg)
+      (price || 0).toFixed(2),         // Column 6: Price ($)
+      usdValue,                        // Column 7: Total Value ($)
+    ];
+  });
+
+  // Add grand total row - exactly 7 columns to match headers
+  tableData.push([
+    "GRAND TOTAL",                     // Column 1
+    `${totals.uniqueBarcodes.size} Barcodes`, // Column 2
+    "—",                               // Column 3
+    "—",                               // Column 4
+    totals.totalWeight.toFixed(2),     // Column 5
+    "—",                               // Column 6
+    totals.totalUSDValue.toFixed(2),   // Column 7
+  ]);
+
+  // Column widths - exactly 7 widths to match headers
+  const columnWidths = [30, 25, 25, 25, 25, 25, 25];
+
+  // Use the same table rendering as farmer report
+  addSimpleTable(doc, headers, tableData, currentY, columnWidths);
+
+  // Generate filename following the farmer report pattern
+  let filename = "Filtered_Inventory_Report";
+  if (filters.stationId) filename += `_Station_${filters.stationId}`;
+  if (filters.buyerId) filename += `_Buyer_${filters.buyerId}`;
+  if (filters.farmerId) filename += `_Farmer_${filters.farmerId}`;
+  if (filters.dateFrom) filename += `_From_${filters.dateFrom}`;
+  filename += `_${new Date().toISOString().split("T")[0]}.pdf`;
+
+  doc.save(filename);
 };

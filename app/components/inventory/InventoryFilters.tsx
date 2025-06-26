@@ -10,8 +10,9 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
 } from "@/app/components/ui/dropdown-menu"
-import { Filter, Search, Eye } from "lucide-react"
-import { Filters, VisibleColumns } from "./types"
+import { Filter, Search, Eye, FileText } from "lucide-react"
+import { Filters, VisibleColumns, InventoryItem } from "./types"
+import { exportFilteredInventoryToPDF } from "./exportUtils"
 
 interface InventoryFiltersProps {
   filters: Filters
@@ -22,6 +23,7 @@ interface InventoryFiltersProps {
   uniqueBuyerIds: string[]
   uniqueTobaccoTypes: string[]
   uniqueStationIds: string[]
+  allFilteredData?: InventoryItem[]  // Add this prop for export
 }
 
 export function InventoryFilters({
@@ -33,6 +35,7 @@ export function InventoryFilters({
   uniqueBuyerIds,
   uniqueTobaccoTypes,
   uniqueStationIds,
+  allFilteredData = [],  // Default to empty array
 }: InventoryFiltersProps) {
   const clearFilters = () => {
     setFilters({
@@ -44,6 +47,28 @@ export function InventoryFilters({
       tobaccoType: "",
       stationId: "",
     })
+  }
+
+  const handlePDFExport = () => {
+    if (allFilteredData.length === 0) {
+      alert("No data available to export.")
+      return
+    }
+    exportFilteredInventoryToPDF(allFilteredData, filters)
+  }
+
+  // Define which columns should be available in the dropdown (excluding registra and dispatchId)
+  const availableColumns = {
+    barcodeId: "Barcode ID",
+    weight: "Weight",
+    farmerId: "Farmer ID",
+    stationId: "Station ID",
+    buyerId: "Buyer ID",
+    lotNumber: "Lot Number",
+    grade: "Grade",
+    price: "Price",
+    tobaccoType: "Tobacco Type",
+    dateFormated: "Date",
   }
 
   return (
@@ -171,9 +196,21 @@ export function InventoryFilters({
         </div>
 
         <div className="flex justify-between items-center mt-4">
-          <Button variant="outline" size="sm" onClick={clearFilters}>
-            Clear Filters
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" onClick={clearFilters}>
+              Clear Filters
+            </Button>
+            
+            {/* <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={handlePDFExport}
+              className="flex items-center gap-2"
+            >
+              <FileText className="h-4 w-4" />
+              Export PDF ({allFilteredData.length} records)
+            </Button> */}
+          </div>
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -185,13 +222,13 @@ export function InventoryFilters({
             <DropdownMenuContent align="end" className="w-48">
               <DropdownMenuLabel>Toggle Columns</DropdownMenuLabel>
               <DropdownMenuSeparator />
-              {Object.entries(visibleColumns).map(([key, visible]) => (
+              {Object.entries(availableColumns).map(([key, label]) => (
                 <DropdownMenuCheckboxItem
                   key={key}
-                  checked={visible}
+                  checked={visibleColumns[key as keyof VisibleColumns]}
                   onCheckedChange={(checked) => setVisibleColumns((prev) => ({ ...prev, [key]: checked }))}
                 >
-                  {key.charAt(0).toUpperCase() + key.slice(1)}
+                  {label}
                 </DropdownMenuCheckboxItem>
               ))}
             </DropdownMenuContent>

@@ -72,12 +72,18 @@ export function FarmerSummaryModal({
   const uniqueBuyerIds = [...new Set(data.map((item) => item.buyerId))].sort();
 
   const handleExport = () => {
-    if (!filters.dateFrom || !filters.dateTo) {
-      alert("Please select both start and end dates.");
+    if (!filters.dateFrom) {
+      alert("Please select a date.");
       return;
     }
 
-    exportSalesSummaryByFarmerPDF(data, { ...filters });
+    // Set dateTo to the same as dateFrom for single date filtering
+    const singleDateFilters = {
+      ...filters,
+      dateTo: filters.dateFrom
+    };
+
+    exportSalesSummaryByFarmerPDF(data, singleDateFilters);
     onClose();
   };
 
@@ -137,35 +143,22 @@ export function FarmerSummaryModal({
         </DialogHeader>
 
         <div className="space-y-4">
-          {/* Date Range */}
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="dateFrom">From Date</Label>
-              <Input
-                id="dateFrom"
-                type="date"
-                value={filters.dateFrom}
-                onChange={(e) =>
-                  setFilters((prevFilters) => ({ ...prevFilters, dateFrom: e.target.value }))
-                }
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="dateTo">To Date</Label>
-              <Input
-                id="dateTo"
-                type="date"
-                value={filters.dateTo}
-                onChange={(e) =>
-                  setFilters((prevFilters) => ({ ...prevFilters, dateTo: e.target.value }))
-                }
-              />
-            </div>
+          {/* Single Date */}
+          <div className="space-y-2">
+            <Label htmlFor="dateFrom">Select Date</Label>
+            <Input
+              id="dateFrom"
+              type="date"
+              value={filters.dateFrom}
+              onChange={(e) =>
+                setFilters((prevFilters) => ({ ...prevFilters, dateFrom: e.target.value }))
+              }
+            />
           </div>
 
           {/* Farmer ID Search */}
           <div className="space-y-2">
-            <Label>Farmer ID (Optional)</Label>
+            <Label>Farmer ID </Label>
             <Popover open={farmerOpen} onOpenChange={setFarmerOpen}>
               <PopoverTrigger asChild>
                 <Button
@@ -366,7 +359,7 @@ export function FarmerSummaryModal({
 
           <div className="text-xs text-gray-500 bg-gray-50 p-3 rounded">
             <strong>Note:</strong> This report will show detailed sales statement grouped by farmer ID, 
-            including number of bales, total weight, average price, and total value for the selected period.
+            including number of bales, total weight, average price, and total value for the selected date.
           </div>
         </div>
       </DialogContent>

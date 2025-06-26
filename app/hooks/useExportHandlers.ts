@@ -1,4 +1,4 @@
-import { useCallback } from 'react'
+import { useCallback } from "react";
 import {
   exportToCSV,
   exportSalesSummaryByDatePDF,
@@ -6,18 +6,12 @@ import {
   exportSalesSummaryByBuyerPDF,
   exportSalesSummaryByDateRangePDF,
   type DateRangeFilters,
-  type DateBasedReportFilters
-} from '../components/inventory'
-import type { InventoryItem } from '../types/inventory' // Import from centralized types
-import type { useFilterStates } from './useFilterStates'
-import type { useModalStates } from './useModalStates'
-
-interface Filters {
-  dateFrom?: string
-  dateTo?: string
-  stationId?: string
-  tobaccoType?: string
-}
+  type DateBasedReportFilters,
+  type Filters, // Import Filters from here
+} from "../components/inventory";
+import type { InventoryItem } from "../types/inventory"; // Keep InventoryItem import if it exists there
+import type { useFilterStates } from "./useFilterStates";
+import type { useModalStates } from "./useModalStates";
 
 export function useExportHandlers(
   data: InventoryItem[],
@@ -73,5 +67,5 @@ export function useExportHandlers(
     handleStationSummaryExport,
     handleBuyerExport,
     handleStationExport,
-  }
+  };
 }

@@ -14,7 +14,7 @@ const INITIAL_STATION_REPORT_FILTERS: StationReportFilters = {
 
 const INITIAL_BUYER_REPORT_FILTERS: BuyerReportFilters = {
   stationId: undefined,
-  tobaccoType: undefined,
+  tobaccoType: "All Types",
   dateFrom: "",
   dateTo: "",
 }
