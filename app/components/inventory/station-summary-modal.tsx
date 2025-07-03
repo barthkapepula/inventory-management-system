@@ -15,7 +15,7 @@ import { FileText } from "lucide-react";
 interface StationSummaryFilters {
   dateFrom: string;
   dateTo: string;
-  tobaccoType: string;
+  tobaccoType?: string;
 }
 
 interface StationSummaryModalProps {

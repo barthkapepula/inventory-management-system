@@ -79,6 +79,7 @@ export default function InventoryPage() {
           uniqueBuyerIds={inventoryData.uniqueBuyerIds}
           uniqueTobaccoTypes={inventoryData.uniqueTobaccoTypes}
           uniqueStationIds={inventoryData.uniqueStationIds}
+          uniqueRegistras={inventoryData.uniqueRegistras}
           visibleColumns={visibleColumns}
           setVisibleColumns={setVisibleColumns}
         />

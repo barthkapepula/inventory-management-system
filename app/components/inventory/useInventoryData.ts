@@ -18,6 +18,7 @@ export function useInventoryData() {
     search: "",
     tobaccoType: "",
     stationId: "",
+    registra: "",
   });
   const [sortConfig, setSortConfig] = useState<SortConfig>({
     key: null,
@@ -31,7 +32,7 @@ export function useInventoryData() {
       try {
         setLoading(true);
         const response = await fetch(
-          "https://tobacco-management-system-server-98pz.onrender.com/api/v1/fetch/inventory"
+          "https://tobacco-management-system-server-98pz.onrender.com/api/v1/fetch/sale"
         );
         const result = await response.json();
         setData(result.message || []);
@@ -64,6 +65,11 @@ export function useInventoryData() {
     [data]
   );
 
+  const uniqueRegistras = useMemo(
+    () => getUniqueValues(data, "registra"),
+    [data]
+  );
+
   // Filter and sort data
   const filteredAndSortedData = useMemo(() => {
     const filtered = data.filter((item) => {
@@ -86,12 +92,16 @@ export function useInventoryData() {
         !filters.stationId ||
         item.stationId.toLowerCase().includes(filters.stationId.toLowerCase());
 
+      const matchesRegistra =
+        !filters.registra ||
+        item.registra.toLowerCase().includes(filters.registra.toLowerCase());
+
       // Date range filtering
       const matchesDateRange = (() => {
         if (!filters.dateFrom && !filters.dateTo) return true;
 
-        const itemDate = parseDate(item.dateFormated);
-        if (!itemDate) return false;
+        const itemDate = new Date(item.date); // Use `date` field
+        if (isNaN(itemDate.getTime())) return false; // Check for invalid date
 
         let matchesFrom = true;
         let matchesTo = true;
@@ -112,7 +122,7 @@ export function useInventoryData() {
       const matchesSearch =
         !filters.search ||
         Object.values(item).some((value) =>
-          value.toString().toLowerCase().includes(filters.search.toLowerCase())
+          value.toString().toLowerCase().includes((filters.search || "").toLowerCase())
         );
 
       return (
@@ -120,6 +130,7 @@ export function useInventoryData() {
         matchesBuyerId &&
         matchesTobaccoType &&
         matchesStationId &&
+        matchesRegistra &&
         matchesDateRange &&
         matchesSearch
       );
@@ -172,5 +183,6 @@ export function useInventoryData() {
     uniqueBuyerIds,
     uniqueTobaccoTypes,
     uniqueStationIds,
+    uniqueRegistras,
   };
 }

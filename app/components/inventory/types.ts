@@ -23,6 +23,7 @@ export interface Filters {
   search?: string;
   tobaccoType?: string;
   stationId?: string;
+  registra?: string;
 }
 
 export interface SortConfig {
@@ -43,6 +44,7 @@ export interface VisibleColumns {
   tobaccoType: boolean;
   dateFormated: boolean;
   dispatchId: boolean;
+  date:boolean;
 }
 
 export interface StationReportFilters {

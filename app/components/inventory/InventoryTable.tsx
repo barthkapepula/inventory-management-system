@@ -85,6 +85,8 @@ export function InventoryTable({
                   renderSortableHeader("stationId", "Station ID")}
                 {visibleColumns.buyerId &&
                   renderSortableHeader("buyerId", "Buyer ID")}
+                {visibleColumns.registra &&
+                  renderSortableHeader("registra", "Registra")}
                 {visibleColumns.lotNumber &&
                   renderSortableHeader("lotNumber", "Lot Number")}
                 {visibleColumns.grade && <TableHead>Grade</TableHead>}
@@ -93,8 +95,8 @@ export function InventoryTable({
                 {visibleColumns.tobaccoType && (
                   <TableHead>Tobacco Type</TableHead>
                 )}
-                {visibleColumns.dateFormated &&
-                  renderSortableHeader("dateFormated", "Date")}
+                {visibleColumns.date &&
+                  renderSortableHeader("date", "Date")}
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -139,6 +141,9 @@ export function InventoryTable({
                       <TableCell>
                         <Badge variant="secondary">{item.buyerId}</Badge>
                       </TableCell>
+                    )}
+                    {visibleColumns.registra && (
+                      <TableCell>{item.registra}</TableCell>
                     )}
                     {visibleColumns.lotNumber && (
                       <TableCell>{item.lotNumber}</TableCell>
@@ -185,8 +190,10 @@ export function InventoryTable({
                         <Badge variant="outline">{item.tobaccoType}</Badge>
                       </TableCell>
                     )}
-                    {visibleColumns.dateFormated && (
-                      <TableCell>{item.dateFormated}</TableCell>
+                    {visibleColumns.date && (
+                      <TableCell>
+                        {new Date(item.date).toLocaleDateString()}
+                      </TableCell>
                     )}
                   </TableRow>
                 ))

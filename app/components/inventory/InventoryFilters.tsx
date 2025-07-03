@@ -23,7 +23,8 @@ interface InventoryFiltersProps {
   uniqueBuyerIds: string[]
   uniqueTobaccoTypes: string[]
   uniqueStationIds: string[]
-  allFilteredData?: InventoryItem[]  // Add this prop for export
+  uniqueRegistras: string[] // Add this prop
+  allFilteredData?: InventoryItem[]
 }
 
 export function InventoryFilters({
@@ -35,6 +36,7 @@ export function InventoryFilters({
   uniqueBuyerIds,
   uniqueTobaccoTypes,
   uniqueStationIds,
+  uniqueRegistras, // Add this prop
   allFilteredData = [],  // Default to empty array
 }: InventoryFiltersProps) {
   const clearFilters = () => {
@@ -46,6 +48,7 @@ export function InventoryFilters({
       search: "",
       tobaccoType: "",
       stationId: "",
+      registra: "", // Add this
     })
   }
 
@@ -68,7 +71,8 @@ export function InventoryFilters({
     grade: "Grade",
     price: "Price",
     tobaccoType: "Tobacco Type",
-    dateFormated: "Date",
+    date: "Date", // Corrected from dateFormated
+    registra: "Registra", // Add this
   }
 
   return (
@@ -157,6 +161,26 @@ export function InventoryFilters({
                 {uniqueStationIds.map((station) => (
                   <SelectItem key={station} value={station}>
                     {station}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div>
+            <label className="text-sm font-medium mb-2 block">Registra</label>
+            <Select
+              value={filters.registra}
+              onValueChange={(value) => setFilters((prev) => ({ ...prev, registra: value }))}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="All Registras" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Registras</SelectItem>
+                {uniqueRegistras.map((id) => (
+                  <SelectItem key={id} value={id}>
+                    {id}
                   </SelectItem>
                 ))}
               </SelectContent>
