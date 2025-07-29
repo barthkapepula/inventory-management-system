@@ -74,8 +74,8 @@ export function useInventoryData() {
   const filteredAndSortedData = useMemo(() => {
     const filtered = data.filter((item) => {
       // Only include records with price > 0
-      const price = Number.parseFloat(item.price || "0");
-      if (price <= 0) return false;
+      // const price = Number.parseFloat(item.price || "0");
+      // if (price <= 0) return false;
 
       const matchesFarmerId =
         !filters.farmerId ||
