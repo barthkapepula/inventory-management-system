@@ -1,6 +1,9 @@
 import { InventoryItem } from "./types";
 
-export const parseDate = (dateStr: string) => {
+export const parseDate = (dateStr: string | undefined | null) => {
+  if (typeof dateStr !== 'string') {
+    return null;
+  }
   const parts = dateStr.split("/");
   if (parts.length === 3) {
     const day = Number.parseInt(parts[0]);

@@ -1,19 +1,9 @@
 import { useMemo } from 'react'
-import type { InventoryItem, InventoryFilters } from '../types/inventory'
+import type { InventoryItem, Filters as InventoryFilters, SortConfig } from '../components/inventory/types'
 
-interface Filters {
-  farmerId?: string
-  buyerId?: string
-  tobaccoType?: string
-  stationId?: string
-  search?: string
-  dateFrom?: string
-  dateTo?: string
-}
-
-export function useDataFiltering(data: InventoryItem[], filters: InventoryFilters) {
+export function useDataFiltering(data: InventoryItem[], filters: InventoryFilters, sortConfig: SortConfig) {
   return useMemo(() => {
-    return data.filter((item) => {
+    const filtered = data.filter((item) => {
       const matchesFarmerId = !filters.farmerId || 
         item.farmerId.toLowerCase().includes(filters.farmerId.toLowerCase())
       
@@ -47,5 +37,19 @@ export function useDataFiltering(data: InventoryItem[], filters: InventoryFilter
       return matchesFarmerId && matchesBuyerId && matchesTobaccoType && 
              matchesStationId && matchesSearch && matchesDateRange
     })
-  }, [data, filters])
+
+    // Apply sorting
+    if (sortConfig.key) {
+      filtered.sort((a, b) => {
+        const aValue = a[sortConfig.key!];
+        const bValue = b[sortConfig.key!];
+
+        if (aValue < bValue) return sortConfig.direction === "asc" ? -1 : 1;
+        if (aValue > bValue) return sortConfig.direction === "asc" ? 1 : -1;
+        return 0;
+      });
+    }
+
+    return filtered
+  }, [data, filters, sortConfig])
 }

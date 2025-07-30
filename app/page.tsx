@@ -12,7 +12,9 @@ import {
   StationModal,
   useInventoryData,
   type VisibleColumns,
-  FarmerSummaryModal
+  FarmerSummaryModal,
+  type SortConfig,
+  type InventoryItem
 } from "./components/inventory"
 import { SalesDateModal } from "./components/inventory/sales-date-modal"
 import { StationSummaryModal } from "./components/inventory/station-summary-modal"
@@ -21,7 +23,7 @@ import { useModalStates } from "./hooks/useModalStates"
 import { useFilterStates } from "./hooks/useFilterStates"
 import { useDataFiltering } from "./hooks/useDataFiltering"
 import { useExportHandlers } from "./hooks/useExportHandlers"
-import { INITIAL_VISIBLE_COLUMNS, DEFAULT_ITEMS_PER_PAGE, SORT_CONFIG } from "./constants/inventory"
+import { INITIAL_VISIBLE_COLUMNS, DEFAULT_ITEMS_PER_PAGE, SORT_CONFIG as INITIAL_SORT_CONFIG } from "./constants/inventory"
 
 const ErrorDisplay = dynamic(
   () => import('./components/inventory/ErrorDisplay').then((mod) => mod.ErrorDisplay),
@@ -29,15 +31,25 @@ const ErrorDisplay = dynamic(
 )
 
 export default function InventoryPage() {
-  // Data and core state
-  const inventoryData = useInventoryData()
   const [visibleColumns, setVisibleColumns] = useState<VisibleColumns>(INITIAL_VISIBLE_COLUMNS)
   const [itemsPerPage, setItemsPerPage] = useState(DEFAULT_ITEMS_PER_PAGE)
+  const [sortConfig, setSortConfig] = useState<SortConfig>(INITIAL_SORT_CONFIG)
+
+  const handleSort = (key: keyof InventoryItem) => {
+    setSortConfig((prev) => ({
+      key,
+      direction: prev.key === key && prev.direction === "asc" ? "desc" : "asc",
+    }))
+  }
 
   // Custom hooks for state management
   const modalStates = useModalStates()
   const filterStates = useFilterStates()
-  const filteredData = useDataFiltering(inventoryData.data, inventoryData.filters)
+  
+  // Data and core state
+  const inventoryData = useInventoryData()
+  const filteredData = useDataFiltering(inventoryData.data, inventoryData.filters, sortConfig)
+  
   const exportHandlers = useExportHandlers(
     inventoryData.data,
     filteredData,
@@ -85,15 +97,15 @@ export default function InventoryPage() {
         />
 
         <InventoryTable
-          data={inventoryData.paginatedData}
+          data={filteredData.slice((inventoryData.currentPage - 1) * itemsPerPage, inventoryData.currentPage * itemsPerPage)}
           visibleColumns={visibleColumns}
-          sortConfig={SORT_CONFIG}
-          onSort={() => {}}
+          sortConfig={sortConfig}
+          onSort={handleSort}
         />
 
         <InventoryPagination
           currentPage={inventoryData.currentPage}
-          totalPages={inventoryData.totalPages}
+          totalPages={Math.ceil(filteredData.length / itemsPerPage)}
           itemsPerPage={itemsPerPage}
           totalItems={filteredData.length}
           onPageChange={inventoryData.setCurrentPage}

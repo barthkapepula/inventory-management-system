@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from "react";
 import { InventoryItem, Filters, SortConfig } from "./types";
-import { parseDate, getUniqueValues } from "./utils";
+import { getUniqueValues } from "./utils";
 
 const ITEMS_PER_PAGE = 10;
 
@@ -34,10 +34,18 @@ export function useInventoryData() {
         const response = await fetch(
           "https://tobacco-management-system-server-98pz.onrender.com/api/v1/fetch/sale"
         );
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
         const result = await response.json();
-        setData(result.message || []);
+        if (result.message && Array.isArray(result.message)) {
+          setData(result.message);
+        } else {
+          setData([]);
+          setError("API returned no data or invalid format.");
+        }
       } catch (err) {
-        setError("Failed to fetch inventory data");
+        setError(`Failed to fetch inventory data: ${err instanceof Error ? err.message : String(err)}`);
         console.error("Error fetching data:", err);
       } finally {
         setLoading(false);
@@ -70,95 +78,14 @@ export function useInventoryData() {
     [data]
   );
 
-  // Filter and sort data
-  const filteredAndSortedData = useMemo(() => {
-    const filtered = data.filter((item) => {
-      // Only include records with price > 0
-      // const price = Number.parseFloat(item.price || "0");
-      // if (price <= 0) return false;
-
-      const matchesFarmerId =
-        !filters.farmerId ||
-        item.farmerId.toLowerCase().includes(filters.farmerId.toLowerCase());
-      const matchesBuyerId =
-        !filters.buyerId ||
-        item.buyerId.toLowerCase().includes(filters.buyerId.toLowerCase());
-      const matchesTobaccoType =
-        !filters.tobaccoType ||
-        item.tobaccoType
-          .toLowerCase()
-          .includes(filters.tobaccoType.toLowerCase());
-      const matchesStationId =
-        !filters.stationId ||
-        item.stationId.toLowerCase().includes(filters.stationId.toLowerCase());
-
-      const matchesRegistra =
-        !filters.registra ||
-        item.registra.toLowerCase().includes(filters.registra.toLowerCase());
-
-      // Date range filtering
-      const matchesDateRange = (() => {
-        if (!filters.dateFrom && !filters.dateTo) return true;
-
-        const itemDate = new Date(item.date); // Use `date` field
-        if (isNaN(itemDate.getTime())) return false; // Check for invalid date
-
-        let matchesFrom = true;
-        let matchesTo = true;
-
-        if (filters.dateFrom) {
-          const fromDate = new Date(filters.dateFrom);
-          matchesFrom = itemDate >= fromDate;
-        }
-
-        if (filters.dateTo) {
-          const toDate = new Date(filters.dateTo);
-          matchesTo = itemDate <= toDate;
-        }
-
-        return matchesFrom && matchesTo;
-      })();
-
-      const matchesSearch =
-        !filters.search ||
-        Object.values(item).some((value) =>
-          value.toString().toLowerCase().includes((filters.search || "").toLowerCase())
-        );
-
-      return (
-        matchesFarmerId &&
-        matchesBuyerId &&
-        matchesTobaccoType &&
-        matchesStationId &&
-        matchesRegistra &&
-        matchesDateRange &&
-        matchesSearch
-      );
-    });
-
-    // Sort data
-    if (sortConfig.key) {
-      filtered.sort((a, b) => {
-        const aValue = a[sortConfig.key!];
-        const bValue = b[sortConfig.key!];
-
-        if (aValue < bValue) return sortConfig.direction === "asc" ? -1 : 1;
-        if (aValue > bValue) return sortConfig.direction === "asc" ? 1 : -1;
-        return 0;
-      });
-    }
-
-    return filtered;
-  }, [data, filters, sortConfig]);
-
-  // Pagination
-  const totalPages = Math.ceil(filteredAndSortedData.length / ITEMS_PER_PAGE);
-  const paginatedData = filteredAndSortedData.slice(
+  // Pagination (this will be based on filteredData from page.tsx)
+  const totalPages = Math.ceil(data.length / ITEMS_PER_PAGE); // Temporarily use raw data length
+  const paginatedData = data.slice( // Temporarily use raw data
     (currentPage - 1) * ITEMS_PER_PAGE,
     currentPage * ITEMS_PER_PAGE
   );
 
-  // Handle sorting
+  // Handle sorting (this will be handled in page.tsx)
   const handleSort = (key: keyof InventoryItem) => {
     setSortConfig((prev) => ({
       key,
@@ -176,7 +103,6 @@ export function useInventoryData() {
     handleSort,
     currentPage,
     setCurrentPage,
-    filteredAndSortedData,
     paginatedData,
     totalPages,
     uniqueFarmerIds,
