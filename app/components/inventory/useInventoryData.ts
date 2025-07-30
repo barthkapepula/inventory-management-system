@@ -45,7 +45,11 @@ export function useInventoryData() {
           setError("API returned no data or invalid format.");
         }
       } catch (err) {
-        setError(`Failed to fetch inventory data: ${err instanceof Error ? err.message : String(err)}`);
+        setError(
+          `Failed to fetch inventory data: ${
+            err instanceof Error ? err.message : String(err)
+          }`
+        );
         console.error("Error fetching data:", err);
       } finally {
         setLoading(false);
@@ -80,7 +84,8 @@ export function useInventoryData() {
 
   // Pagination (this will be based on filteredData from page.tsx)
   const totalPages = Math.ceil(data.length / ITEMS_PER_PAGE); // Temporarily use raw data length
-  const paginatedData = data.slice( // Temporarily use raw data
+  const paginatedData = data.slice(
+    // Temporarily use raw data
     (currentPage - 1) * ITEMS_PER_PAGE,
     currentPage * ITEMS_PER_PAGE
   );
