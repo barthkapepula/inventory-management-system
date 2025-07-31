@@ -950,6 +950,8 @@ export const exportSalesSummaryByFarmerPDF = (
   data: InventoryItem[],
   filters: FarmerReportFilters
 ) => {
+  console.log('Starting export with filters:', filters);
+  
   if (!filters.dateFrom || !filters.dateTo) {
     alert("Please select both start and end dates.");
     return;
@@ -957,7 +959,10 @@ export const exportSalesSummaryByFarmerPDF = (
 
   const filteredData = data.filter((item) => {
     const price = Number.parseFloat(item.price || "0");
-    if (price <= 0) return false;
+    if (price <= 0) {
+      console.log('Skipping item with invalid price:', item.barcodeId);
+      return false;
+    }
 
     // Filter by Farmer ID if specified
     const matchesFarmerId =
@@ -971,10 +976,46 @@ export const exportSalesSummaryByFarmerPDF = (
     const matchesTobaccoType =
       !filters.tobaccoType || item.tobaccoType === filters.tobaccoType;
 
-    // Filter by Date Range using the new helper function
-    const matchesDateRange = isDateInRange(item.dateFormated, filters.dateFrom, filters.dateTo);
+    // Get date from item - try valid date fields
+    const itemDate = item.dateFormated || item.date;
+    if (!itemDate) {
+      console.log('Item has no valid date field:', item.barcodeId);
+      return false;
+    }
 
-    return matchesFarmerId && matchesBuyerId && matchesTobaccoType && matchesDateRange;
+    // Filter by Date Range using the new helper function
+    let matchesDateRange;
+    try {
+      matchesDateRange = isDateInRange(itemDate, filters.dateFrom, filters.dateTo);
+      if (!matchesDateRange) {
+        console.log('Item date not in range:', {
+          itemDate,
+          dateFrom: filters.dateFrom, 
+          dateTo: filters.dateTo,
+          item: item.barcodeId
+        });
+      }
+    } catch (error) {
+      console.error('Error comparing dates:', error, {
+        itemDate,
+        dateFrom: filters.dateFrom,
+        dateTo: filters.dateTo,
+        item: item.barcodeId
+      });
+      return false;
+    }
+
+    const shouldInclude = matchesFarmerId && matchesBuyerId && matchesTobaccoType && matchesDateRange;
+    if (!shouldInclude) {
+      console.log('Excluding item:', item.barcodeId, {
+        matchesFarmerId,
+        matchesBuyerId,
+        matchesTobaccoType,
+        matchesDateRange
+      });
+    }
+
+    return shouldInclude;
   });
 
   if (filteredData.length === 0) {
