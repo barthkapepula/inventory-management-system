@@ -8,16 +8,29 @@ import {
   DateBasedReportFilters,
   FarmerReportFilters,
 } from "./types";
-import { parseDate } from "./utils";
 import jsPDF from "jspdf";
+
+function normalizeDate(dateString: string | Date): Date {
+  // If already a Date object, return it
+  if (dateString instanceof Date) return dateString
+  
+  // Try parsing as ISO string first
+  const isoDate = new Date(dateString)
+  if (!isNaN(isoDate.getTime())) return isoDate
+  
+  // Try parsing as formatted string (e.g. "Thu Jul 31 2025 06:57:49 GMT+0200")
+  const formattedDate = new Date(dateString)
+  if (!isNaN(formattedDate.getTime())) return formattedDate
+  
+  // Fallback to current date if parsing fails
+  return new Date()
+}
 
 // Helper function to check if a date falls within a date range (entire day)
 const isDateInRange = (itemDateString: string, fromDateString: string, toDateString: string): boolean => {
-  const itemDate = parseDate(itemDateString);
-  if (!itemDate) return false;
-
-  const fromDate = new Date(fromDateString);
-  const toDate = new Date(toDateString);
+  const itemDate = normalizeDate(itemDateString);
+  const fromDate = normalizeDate(fromDateString);
+  const toDate = normalizeDate(toDateString);
   
   // Set time to start of day for fromDate (00:00:00)
   fromDate.setHours(0, 0, 0, 0);
@@ -37,8 +50,7 @@ const formatDateForGrouping = (
   dateString: string,
   reportType: "daily" | "monthly" | "yearly"
 ): string => {
-  const date = parseDate(dateString);
-  if (!date) return dateString;
+  const date = normalizeDate(dateString);
 
   switch (reportType) {
     case "daily":
@@ -352,9 +364,8 @@ export const exportSalesSummaryByDatePDF = (
   }));
 
   summaryArray.sort((a, b) => {
-    const dateA = parseDate(a.date);
-    const dateB = parseDate(b.date);
-    if (!dateA || !dateB) return 0;
+    const dateA = normalizeDate(a.date);
+    const dateB = normalizeDate(b.date);
     return dateA.getTime() - dateB.getTime();
   });
 
@@ -830,9 +841,8 @@ export const exportSalesSummaryByDateRangePDF = (
     if (filters.reportType === "yearly" || filters.reportType === "monthly") {
       return a.groupKey.localeCompare(b.groupKey);
     } else {
-      const dateA = parseDate(a.groupKey);
-      const dateB = parseDate(b.groupKey);
-      if (!dateA || !dateB) return 0;
+      const dateA = normalizeDate(a.groupKey);
+      const dateB = normalizeDate(b.groupKey);
       return dateA.getTime() - dateB.getTime();
     }
   });

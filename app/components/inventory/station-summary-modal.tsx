@@ -12,6 +12,22 @@ import {
 } from "@/components/ui/select";
 import { FileText } from "lucide-react";
 
+function normalizeDate(dateString: string | Date): Date {
+  // If already a Date object, return it
+  if (dateString instanceof Date) return dateString
+  
+  // Try parsing as ISO string first
+  const isoDate = new Date(dateString)
+  if (!isNaN(isoDate.getTime())) return isoDate
+  
+  // Try parsing as formatted string (e.g. "Thu Jul 31 2025 06:57:49 GMT+0200")
+  const formattedDate = new Date(dateString)
+  if (!isNaN(formattedDate.getTime())) return formattedDate
+  
+  // Fallback to current date if parsing fails
+  return new Date()
+}
+
 interface StationSummaryFilters {
   dateFrom: string;
   dateTo: string;

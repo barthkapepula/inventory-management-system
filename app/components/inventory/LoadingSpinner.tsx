@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader } from "@/app/components/ui/card";
 import { Skeleton } from "@/app/components/ui/skeleton";
 
@@ -8,6 +9,21 @@ interface LoadingSpinnerProps {
 export function LoadingSpinner({
   message = "Loading...",
 }: LoadingSpinnerProps) {
+  const [progressMessage, setProgressMessage] = useState(message);
+
+  useEffect(() => {
+    const timer1 = setTimeout(() => {
+      setProgressMessage("Please wait a bit...");
+    }, 1500);
+    const timer2 = setTimeout(() => {
+      setProgressMessage("Almost done fetching...");
+    }, 3000);
+
+    return () => {
+      clearTimeout(timer1);
+      clearTimeout(timer2);
+    };
+  }, []);
   return (
     <div className="space-y-6">
       {/* Header Skeleton */}
@@ -140,7 +156,7 @@ export function LoadingSpinner({
       <div className="flex items-center justify-center py-8">
         <div className="flex items-center gap-3">
           <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
-          <p className="text-sm text-gray-600">{message}</p>
+          <p className="text-sm text-gray-600">{progressMessage}</p>
         </div>
       </div>
     </div>

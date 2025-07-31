@@ -1,6 +1,22 @@
 import { useMemo } from 'react'
 import type { InventoryItem, Filters as InventoryFilters, SortConfig } from '../components/inventory/types'
 
+function normalizeDate(dateString: string | Date): Date {
+  // If already a Date object, return it
+  if (dateString instanceof Date) return dateString
+  
+  // Try parsing as ISO string first
+  const isoDate = new Date(dateString)
+  if (!isNaN(isoDate.getTime())) return isoDate
+  
+  // Try parsing as formatted string (e.g. "Thu Jul 31 2025 06:57:49 GMT+0200")
+  const formattedDate = new Date(dateString)
+  if (!isNaN(formattedDate.getTime())) return formattedDate
+  
+  // Fallback to current date if parsing fails
+  return new Date()
+}
+
 export function useDataFiltering(data: InventoryItem[], filters: InventoryFilters, sortConfig: SortConfig) {
   return useMemo(() => {
     const filtered = data.filter((item) => {
@@ -23,13 +39,13 @@ export function useDataFiltering(data: InventoryItem[], filters: InventoryFilter
 
       let matchesDateRange = true
       if (filters.dateFrom || filters.dateTo) {
-        const itemDate = new Date(item.date)
+        const itemDate = normalizeDate(item.date)
         if (filters.dateFrom) {
-          const fromDate = new Date(filters.dateFrom)
+          const fromDate = normalizeDate(filters.dateFrom)
           matchesDateRange = matchesDateRange && itemDate >= fromDate
         }
         if (filters.dateTo) {
-          const toDate = new Date(filters.dateTo)
+          const toDate = normalizeDate(filters.dateTo)
           matchesDateRange = matchesDateRange && itemDate <= toDate
         }
       }
