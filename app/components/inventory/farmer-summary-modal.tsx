@@ -95,14 +95,16 @@ export function FarmerSummaryModal({
 
     // Normalize dates for consistent comparison
     const normalizedDate = normalizeDate(filters.dateFrom);
+    const dateString = normalizedDate.toISOString().split('T')[0];
 
     // Set dateTo to the same as dateFrom for single date filtering
     const singleDateFilters = {
       ...filters,
-      dateFrom: normalizedDate.toISOString().split('T')[0],
-      dateTo: normalizedDate.toISOString().split('T')[0]
+      dateFrom: dateString,
+      dateTo: dateString
     };
 
+    console.log('Exporting with filters:', singleDateFilters);
     exportSalesSummaryByFarmerPDF(data, singleDateFilters);
     onClose();
   };

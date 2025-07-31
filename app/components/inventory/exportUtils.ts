@@ -267,20 +267,33 @@ const addSimpleTable = (
       doc.setFont("helvetica", "bold");
     }
 
-    currentX = startX + 2;
-    row.forEach((cell, cellIndex) => {
-      const align =
-        cellIndex === 0 ? "left" : cellIndex === 1 ? "center" : "right";
-      const textX =
-        align === "right"
-          ? currentX + columnWidths[cellIndex] - 5
-          : align === "center"
-          ? currentX + columnWidths[cellIndex] / 2
-          : currentX;
+      currentX = startX + 2;
+      row.forEach((cell, cellIndex) => {
+        // Ensure cell is a string
+        const cellText = cell?.toString() || "";
+        
+        // Validate alignment
+        const align = 
+          cellIndex === 0 ? "left" : 
+          cellIndex === 1 ? "center" : 
+          "right";
+        
+        // Calculate text position
+        const textX =
+          align === "right"
+            ? currentX + columnWidths[cellIndex] - 5
+            : align === "center"
+            ? currentX + columnWidths[cellIndex] / 2
+            : currentX;
 
-      doc.text(cell, textX, currentY + 5, { align: align as any });
-      currentX += columnWidths[cellIndex];
-    });
+        // Only pass valid alignment options with proper typing
+        const options = align === "left" ? undefined : { 
+          align: align as "left" | "center" | "right" 
+        };
+        
+        doc.text(cellText, textX, currentY + 5, options);
+        currentX += columnWidths[cellIndex];
+      });
 
     doc.setDrawColor(189, 195, 199);
     doc.rect(startX, currentY, pageWidth - 40, rowHeight);
