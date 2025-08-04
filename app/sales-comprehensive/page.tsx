@@ -33,7 +33,7 @@ interface SaleItem {
 }
 
 // Define type for the aggregated data to be displayed in the table
-interface AggregatedSale {
+export interface AggregatedSale {
   saleDate: string
   farmerId: string
   farmerName: string
@@ -192,7 +192,7 @@ export default function SalesDashboard() {
           <CreateScheduleModal
             isOpen={isCreateScheduleModalOpen}
             onClose={() => setIsCreateScheduleModalOpen(false)}
-            salesData={salesData}
+            salesData={filteredAndAggregatedSales}
             uniqueStations={uniqueStations}
           />
 

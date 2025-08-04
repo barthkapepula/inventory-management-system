@@ -16,13 +16,14 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { InventoryItem } from "@/app/components/inventory/types"; // Assuming InventoryItem type is available here
+import { InventoryItem } from "@/app/components/inventory/types";
 import { exportSalesComprehensiveSchedulePDF } from "@/app/components/inventory/exportUtils";
+import { AggregatedSale } from "@/app/sales-comprehensive/page"; // Import AggregatedSale type
 
 interface CreateScheduleModalProps {
   isOpen: boolean;
   onClose: () => void;
-  salesData: InventoryItem[];
+  salesData: AggregatedSale[]; // Change type to AggregatedSale[]
   uniqueStations: string[];
 }
 

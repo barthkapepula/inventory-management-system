@@ -946,8 +946,22 @@ export const exportDispatchDataPDF = async (dispatchbookNumber: string) => {
 };
 
 // 5. Sales Comprehensive Schedule PDF
+// Define type for the aggregated data to be displayed in the table (copied from page.tsx)
+interface AggregatedSale {
+  saleDate: string
+  farmerId: string
+  farmerName: string
+  station: string
+  numberOfBales: number
+  totalWeight: number
+  totalSales: number
+  totalCommission: number
+  totalLoans: number
+  netPay: number
+}
+
 export const exportSalesComprehensiveSchedulePDF = (
-  data: InventoryItem[],
+  data: AggregatedSale[], // Now accepts AggregatedSale[]
   filters: { stationId?: string; dateFrom: string; dateTo: string }
 ) => {
   if (!filters.dateFrom || !filters.dateTo) {
@@ -955,59 +969,29 @@ export const exportSalesComprehensiveSchedulePDF = (
     return;
   }
 
-  const filteredData = data.filter((item) => {
-    const price = Number.parseFloat(item.price || "0");
-    if (price <= 0) return false;
+  // Filter the aggregated data based on the modal's filters
+  const filteredAggregatedData = data.filter((item) => {
+    const itemDate = normalizeDate(item.saleDate);
+    const fromDate = normalizeDate(filters.dateFrom);
+    const toDate = normalizeDate(filters.dateTo);
 
+    // Adjust dates to include the entire day for comparison
+    fromDate.setHours(0, 0, 0, 0);
+    toDate.setHours(23, 59, 59, 999);
+
+    const matchesDateRange = itemDate >= fromDate && itemDate <= toDate;
     const matchesStation =
-      !filters.stationId || item.stationId === item.stationId; // This should be item.stationId === filters.stationId
-    const matchesDateRange = isDateInRange(item.dateFormated, filters.dateFrom, filters.dateTo);
+      !filters.stationId || item.station === filters.stationId;
 
-    return matchesStation && matchesDateRange;
+    return matchesDateRange && matchesStation;
   });
 
-  if (filteredData.length === 0) {
+  if (filteredAggregatedData.length === 0) {
     alert("No records found for the selected criteria.");
     return;
   }
 
-  // Group data by date and then by farmer/station for the schedule
-  const scheduleData = filteredData.reduce((acc, item) => {
-    const dateKey = item.dateFormated;
-    if (!acc[dateKey]) {
-      acc[dateKey] = {
-        date: dateKey,
-        stations: {},
-      };
-    }
-
-    const stationKey = item.stationId;
-    if (!acc[dateKey].stations[stationKey]) {
-      acc[dateKey].stations[stationKey] = {
-        stationId: stationKey,
-        farmers: {},
-      };
-    }
-
-    const farmerKey = item.farmerId;
-    if (!acc[dateKey].stations[stationKey].farmers[farmerKey]) {
-      acc[dateKey].stations[stationKey].farmers[farmerKey] = {
-        farmerId: farmerKey,
-        farmerName: item.registra,
-        barcodes: new Set(),
-        totalWeight: 0,
-        totalValue: 0,
-      };
-    }
-
-    acc[dateKey].stations[stationKey].farmers[farmerKey].barcodes.add(item.barcodeId);
-    acc[dateKey].stations[stationKey].farmers[farmerKey].totalWeight += Number.parseFloat(item.weight || "0");
-    acc[dateKey].stations[stationKey].farmers[farmerKey].totalValue += Number.parseFloat(item.price || "0") * Number.parseFloat(item.weight || "0");
-
-    return acc;
-  }, {} as Record<string, any>);
-
-  const doc = new jsPDF();
+  const doc = new jsPDF("landscape"); // Keep landscape for potentially wide tables
   let currentY = addCompanyHeader(doc, "Sales Comprehensive Schedule");
 
   const reportInfo = {
@@ -1026,69 +1010,90 @@ export const exportSalesComprehensiveSchedulePDF = (
   doc.setFont("helvetica", "italic");
   doc.setTextColor(127, 140, 141);
   doc.text(
-    "Note: This schedule includes sales with valid prices (> $0)",
+    "Note: This schedule is based on aggregated sales data.",
     doc.internal.pageSize.width / 2,
     currentY,
     { align: "center" }
   );
   currentY += 10;
 
-  // Iterate through dates, then stations, then farmers
-  Object.keys(scheduleData).sort().forEach((dateKey) => {
-    const dateEntry = scheduleData[dateKey];
-    doc.setFontSize(12);
-    doc.setFont("helvetica", "bold");
-    doc.setTextColor(44, 62, 80);
-    doc.text(`Date: ${dateEntry.date}`, 20, currentY);
-    currentY += 8;
+  const tableHeaders = [
+    "Sale Date",
+    "Farmer ID",
+    "Farmer Name",
+    "Station",
+    "Bales",
+    "Total Weight (kg)",
+    "Total Sales ($)",
+    "Commission ($)",
+    "Loans ($)",
+    "Net Pay ($)",
+  ];
 
-    Object.keys(dateEntry.stations).sort().forEach((stationKey) => {
-      const stationEntry = dateEntry.stations[stationKey];
-      doc.setFontSize(10);
-      doc.setFont("helvetica", "bold");
-      doc.setTextColor(52, 73, 94);
-      doc.text(`Station: ${stationEntry.stationId}`, 25, currentY);
-      currentY += 7;
+  // Calculate totals for the summary row
+  const totals = filteredAggregatedData.reduce(
+    (acc, sale) => {
+      acc.numberOfBales += sale.numberOfBales;
+      acc.totalWeight += sale.totalWeight;
+      acc.totalSales += sale.totalSales;
+      acc.totalCommission += sale.totalCommission;
+      acc.totalLoans += sale.totalLoans;
+      acc.netPay += sale.netPay;
+      return acc;
+    },
+    {
+      numberOfBales: 0,
+      totalWeight: 0,
+      totalSales: 0,
+      totalCommission: 0,
+      totalLoans: 0,
+      netPay: 0,
+    }
+  );
 
-      const tableHeaders = ["Farmer ID", "Farmer Name", "Bales", "Weight (kg)", "Total Value ($)"];
-      const columnWidths = [30, 40, 20, 30, 30];
-      const farmerTableData: string[][] = [];
-      let stationTotalBales = 0;
-      let stationTotalWeight = 0;
-      let stationTotalValue = 0;
+  const tableData = filteredAggregatedData.map((sale) => [
+    sale.saleDate,
+    sale.farmerId,
+    sale.farmerName,
+    sale.station,
+    sale.numberOfBales.toString(),
+    sale.totalWeight.toFixed(2),
+    sale.totalSales.toFixed(2),
+    sale.totalCommission.toFixed(2),
+    sale.totalLoans.toFixed(2),
+    sale.netPay.toFixed(2),
+  ]);
 
-      Object.keys(stationEntry.farmers).sort().forEach((farmerKey) => {
-        const farmerEntry = stationEntry.farmers[farmerKey];
-        const noOfBales = farmerEntry.barcodes.size;
-        const totalWeight = farmerEntry.totalWeight;
-        const totalValue = farmerEntry.totalValue;
+  // Add totals row
+  tableData.push([
+    "GRAND TOTAL",
+    "", // Farmer ID
+    "", // Farmer Name
+    "", // Station
+    totals.numberOfBales.toString(),
+    totals.totalWeight.toFixed(2),
+    totals.totalSales.toFixed(2),
+    totals.totalCommission.toFixed(2),
+    totals.totalLoans.toFixed(2),
+    totals.netPay.toFixed(2),
+  ]);
 
-        farmerTableData.push([
-          farmerEntry.farmerId,
-          farmerEntry.farmerName,
-          noOfBales.toString(),
-          totalWeight.toFixed(2),
-          totalValue.toFixed(2),
-        ]);
+  // Adjust column widths for landscape A4 (297mm wide, 20mm margins = 257mm usable)
+  const columnWidths = [
+    25, // Sale Date
+    20, // Farmer ID
+    35, // Farmer Name
+    25, // Station
+    15, // Bales
+    25, // Total Weight (kg)
+    25, // Total Sales ($)
+    25, // Commission ($)
+    20, // Loans ($)
+    25, // Net Pay ($)
+  ];
 
-        stationTotalBales += noOfBales;
-        stationTotalWeight += totalWeight;
-        stationTotalValue += totalValue;
-      });
-
-      farmerTableData.push([
-        "Station Total",
-        "",
-        stationTotalBales.toString(),
-        stationTotalWeight.toFixed(2),
-        stationTotalValue.toFixed(2),
-      ]);
-
-      currentY = addSimpleTable(doc, tableHeaders, farmerTableData, currentY, columnWidths);
-      currentY += 5; // Add some space after each station table
-    });
-    currentY += 10; // Add more space after each date block
-  });
+  currentY = addSimpleTable(doc, tableHeaders, tableData, currentY, columnWidths);
+  currentY += 5; // Add some space after the table
 
   doc.save(
     `Sales_Comprehensive_Schedule_${new Date().toISOString().split("T")[0]}.pdf`
@@ -1100,7 +1105,6 @@ export const exportSalesSummaryByFarmerPDF = (
   data: InventoryItem[],
   filters: FarmerReportFilters
 ) => {
-  console.log('Starting export with filters:', filters);
   
   if (!filters.dateFrom || !filters.dateTo) {
     alert("Please select both start and end dates.");
@@ -1110,7 +1114,6 @@ export const exportSalesSummaryByFarmerPDF = (
   const filteredData = data.filter((item) => {
     const price = Number.parseFloat(item.price || "0");
     if (price <= 0) {
-      console.log('Skipping item with invalid price:', item.barcodeId);
       return false;
     }
 
@@ -1129,7 +1132,6 @@ export const exportSalesSummaryByFarmerPDF = (
     // Get date from item - try valid date fields
     const itemDate = item.dateFormated || item.date;
     if (!itemDate) {
-      console.log('Item has no valid date field:', item.barcodeId);
       return false;
     }
 
@@ -1137,14 +1139,6 @@ export const exportSalesSummaryByFarmerPDF = (
     let matchesDateRange;
     try {
       matchesDateRange = isDateInRange(itemDate, filters.dateFrom, filters.dateTo);
-      if (!matchesDateRange) {
-        console.log('Item date not in range:', {
-          itemDate,
-          dateFrom: filters.dateFrom, 
-          dateTo: filters.dateTo,
-          item: item.barcodeId
-        });
-      }
     } catch (error) {
       console.error('Error comparing dates:', error, {
         itemDate,
@@ -1156,15 +1150,7 @@ export const exportSalesSummaryByFarmerPDF = (
     }
 
     const shouldInclude = matchesFarmerId && matchesBuyerId && matchesTobaccoType && matchesDateRange;
-    if (!shouldInclude) {
-      console.log('Excluding item:', item.barcodeId, {
-        matchesFarmerId,
-        matchesBuyerId,
-        matchesTobaccoType,
-        matchesDateRange
-      });
-    }
-
+    
     return shouldInclude;
   });
 
