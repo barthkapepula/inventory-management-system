@@ -11,6 +11,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useRouter } from "next/navigation"
+import { CreateScheduleModal } from "./create-schedule-modal"
 
 // Define types for the raw data from the API
 interface SaleItem {
@@ -28,6 +29,7 @@ interface SaleItem {
   dispatchId: string
   date: string // ISO date string, e.g., "2025-07-31T19:02:25.000Z"
   formattedDate: string // MM/DD/YYYY string, e.g., "2/4/2025"
+  dateFormated: string; // Added to match InventoryItem
 }
 
 // Define type for the aggregated data to be displayed in the table
@@ -51,6 +53,7 @@ export default function SalesDashboard() {
   const [startDate, setStartDate] = useState<Date | undefined>(undefined)
   const [endDate, setEndDate] = useState<Date | undefined>(undefined)
   const [selectedStation, setSelectedStation] = useState<string>("All")
+  const [isCreateScheduleModalOpen, setIsCreateScheduleModalOpen] = useState(false)
 
   const router = useRouter()
 
@@ -173,82 +176,25 @@ export default function SalesDashboard() {
         </CardHeader>
         <CardContent>
           <div className="flex flex-col md:flex-row gap-4 mb-6 items-center justify-between">
-            <div className="flex flex-col sm:flex-row gap-4">
-              {/* Date From Picker */}
-              <div className="flex items-center gap-2">
-                <label htmlFor="date-from" className="sr-only">
-                  Date From
-                </label>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      id="date-from"
-                      variant={"outline"}
-                      className={cn(
-                        "w-[240px] justify-start text-left font-normal",
-                        !startDate && "text-muted-foreground",
-                      )}
-                    >
-                      <CalendarIcon className="mr-2 h-4 w-4" />
-                      {startDate ? format(startDate, "PPP") : <span>Date From</span>}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar mode="single" selected={startDate} onSelect={setStartDate} initialFocus />
-                  </PopoverContent>
-                </Popover>
-              </div>
-              {/* Date To Picker */}
-              <div className="flex items-center gap-2">
-                <label htmlFor="date-to" className="sr-only">
-                  Date To
-                </label>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      id="date-to"
-                      variant={"outline"}
-                      className={cn(
-                        "w-[240px] justify-start text-left font-normal",
-                        !endDate && "text-muted-foreground",
-                      )}
-                    >
-                      <CalendarIcon className="mr-2 h-4 w-4" />
-                      {endDate ? format(endDate, "PPP") : <span>Date To</span>}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar mode="single" selected={endDate} onSelect={setEndDate} initialFocus />
-                  </PopoverContent>
-                </Popover>
-              </div>
-            </div>
-            {/* Station Select Filter */}
-            <div className="flex items-center gap-2">
-              <label htmlFor="station-select" className="sr-only">
-                Select Station
-              </label>
-              <Select value={selectedStation} onValueChange={setSelectedStation}>
-                <SelectTrigger id="station-select" className="w-[180px]">
-                  <SelectValue placeholder="Select Station" />
-                </SelectTrigger>
-                <SelectContent>
-                  {uniqueStations.map((station) => (
-                    <SelectItem key={station} value={station}>
-                      {station}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+          
+           
             {/* Action Buttons */}
             <div className="flex gap-2 w-full md:w-auto justify-end">
-              <Button className="w-full md:w-auto">Create Schedule</Button>
+              <Button className="w-full md:w-auto" onClick={() => setIsCreateScheduleModalOpen(true)}>
+                Create Schedule
+              </Button>
               <Button variant="secondary" className="w-full md:w-auto" onClick={() => router.push("/sales-comprehensive/payments")}>
                 Make Payments
               </Button>
             </div>
           </div>
+
+          <CreateScheduleModal
+            isOpen={isCreateScheduleModalOpen}
+            onClose={() => setIsCreateScheduleModalOpen(false)}
+            salesData={salesData}
+            uniqueStations={uniqueStations}
+          />
 
           {/* Sales Data Table */}
           <div className="overflow-x-auto border rounded-md">

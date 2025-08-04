@@ -945,6 +945,156 @@ export const exportDispatchDataPDF = async (dispatchbookNumber: string) => {
   alert("Export Dispatch Data to PDF functionality is not yet implemented.");
 };
 
+// 5. Sales Comprehensive Schedule PDF
+export const exportSalesComprehensiveSchedulePDF = (
+  data: InventoryItem[],
+  filters: { stationId?: string; dateFrom: string; dateTo: string }
+) => {
+  if (!filters.dateFrom || !filters.dateTo) {
+    alert("Please select both start and end dates.");
+    return;
+  }
+
+  const filteredData = data.filter((item) => {
+    const price = Number.parseFloat(item.price || "0");
+    if (price <= 0) return false;
+
+    const matchesStation =
+      !filters.stationId || item.stationId === item.stationId; // This should be item.stationId === filters.stationId
+    const matchesDateRange = isDateInRange(item.dateFormated, filters.dateFrom, filters.dateTo);
+
+    return matchesStation && matchesDateRange;
+  });
+
+  if (filteredData.length === 0) {
+    alert("No records found for the selected criteria.");
+    return;
+  }
+
+  // Group data by date and then by farmer/station for the schedule
+  const scheduleData = filteredData.reduce((acc, item) => {
+    const dateKey = item.dateFormated;
+    if (!acc[dateKey]) {
+      acc[dateKey] = {
+        date: dateKey,
+        stations: {},
+      };
+    }
+
+    const stationKey = item.stationId;
+    if (!acc[dateKey].stations[stationKey]) {
+      acc[dateKey].stations[stationKey] = {
+        stationId: stationKey,
+        farmers: {},
+      };
+    }
+
+    const farmerKey = item.farmerId;
+    if (!acc[dateKey].stations[stationKey].farmers[farmerKey]) {
+      acc[dateKey].stations[stationKey].farmers[farmerKey] = {
+        farmerId: farmerKey,
+        farmerName: item.registra,
+        barcodes: new Set(),
+        totalWeight: 0,
+        totalValue: 0,
+      };
+    }
+
+    acc[dateKey].stations[stationKey].farmers[farmerKey].barcodes.add(item.barcodeId);
+    acc[dateKey].stations[stationKey].farmers[farmerKey].totalWeight += Number.parseFloat(item.weight || "0");
+    acc[dateKey].stations[stationKey].farmers[farmerKey].totalValue += Number.parseFloat(item.price || "0") * Number.parseFloat(item.weight || "0");
+
+    return acc;
+  }, {} as Record<string, any>);
+
+  const doc = new jsPDF();
+  let currentY = addCompanyHeader(doc, "Sales Comprehensive Schedule");
+
+  const reportInfo = {
+    Period: `${new Date(filters.dateFrom).toLocaleDateString(
+      "en-GB"
+    )} to ${new Date(filters.dateTo).toLocaleDateString("en-GB")}`,
+    Station: filters.stationId || "ALL STATIONS",
+    Generated: `${new Date().toLocaleDateString(
+      "en-GB"
+    )} ${new Date().toLocaleTimeString("en-GB")}`,
+  };
+
+  currentY = addReportInfo(doc, currentY, reportInfo);
+
+  doc.setFontSize(8);
+  doc.setFont("helvetica", "italic");
+  doc.setTextColor(127, 140, 141);
+  doc.text(
+    "Note: This schedule includes sales with valid prices (> $0)",
+    doc.internal.pageSize.width / 2,
+    currentY,
+    { align: "center" }
+  );
+  currentY += 10;
+
+  // Iterate through dates, then stations, then farmers
+  Object.keys(scheduleData).sort().forEach((dateKey) => {
+    const dateEntry = scheduleData[dateKey];
+    doc.setFontSize(12);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(44, 62, 80);
+    doc.text(`Date: ${dateEntry.date}`, 20, currentY);
+    currentY += 8;
+
+    Object.keys(dateEntry.stations).sort().forEach((stationKey) => {
+      const stationEntry = dateEntry.stations[stationKey];
+      doc.setFontSize(10);
+      doc.setFont("helvetica", "bold");
+      doc.setTextColor(52, 73, 94);
+      doc.text(`Station: ${stationEntry.stationId}`, 25, currentY);
+      currentY += 7;
+
+      const tableHeaders = ["Farmer ID", "Farmer Name", "Bales", "Weight (kg)", "Total Value ($)"];
+      const columnWidths = [30, 40, 20, 30, 30];
+      const farmerTableData: string[][] = [];
+      let stationTotalBales = 0;
+      let stationTotalWeight = 0;
+      let stationTotalValue = 0;
+
+      Object.keys(stationEntry.farmers).sort().forEach((farmerKey) => {
+        const farmerEntry = stationEntry.farmers[farmerKey];
+        const noOfBales = farmerEntry.barcodes.size;
+        const totalWeight = farmerEntry.totalWeight;
+        const totalValue = farmerEntry.totalValue;
+
+        farmerTableData.push([
+          farmerEntry.farmerId,
+          farmerEntry.farmerName,
+          noOfBales.toString(),
+          totalWeight.toFixed(2),
+          totalValue.toFixed(2),
+        ]);
+
+        stationTotalBales += noOfBales;
+        stationTotalWeight += totalWeight;
+        stationTotalValue += totalValue;
+      });
+
+      farmerTableData.push([
+        "Station Total",
+        "",
+        stationTotalBales.toString(),
+        stationTotalWeight.toFixed(2),
+        stationTotalValue.toFixed(2),
+      ]);
+
+      currentY = addSimpleTable(doc, tableHeaders, farmerTableData, currentY, columnWidths);
+      currentY += 5; // Add some space after each station table
+    });
+    currentY += 10; // Add more space after each date block
+  });
+
+  doc.save(
+    `Sales_Comprehensive_Schedule_${new Date().toISOString().split("T")[0]}.pdf`
+  );
+};
+
 // 4. Sales Summary by Farmer
 export const exportSalesSummaryByFarmerPDF = (
   data: InventoryItem[],
