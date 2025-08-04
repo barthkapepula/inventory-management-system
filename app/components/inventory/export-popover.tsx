@@ -19,6 +19,7 @@ interface ExportPopoverProps {
   openSalesDateModal: () => void;
   openStationSummaryModal: () => void;
   openFarmerModal: () => void;
+  openSalesComprehensiveModal: () => void;
 }
 
 export function ExportPopover({
@@ -29,6 +30,7 @@ export function ExportPopover({
   openSalesDateModal,
   openStationSummaryModal,
   openFarmerModal,
+  openSalesComprehensiveModal,
 }: ExportPopoverProps) {
   const [isOpen, setIsOpen] = useState(false);
   const router = useRouter();
@@ -48,6 +50,11 @@ export function ExportPopover({
     router.push('/dispatch');
   };
 
+  const handleSalesComprehensiveClick = () => {
+    setIsOpen(false);
+    router.push('/sales-comprehensive');
+  };
+
   return (
     <Popover open={isOpen} onOpenChange={setIsOpen}>
       <PopoverTrigger asChild>
@@ -64,6 +71,21 @@ export function ExportPopover({
             Export Options
           </div>
           
+          <Button
+            onClick={handleSalesComprehensiveClick}
+            variant="ghost"
+            size="sm"
+            className="w-full justify-start h-auto py-3 px-3"
+          >
+            <FileText className="h-4 w-4 mr-3 flex-shrink-0" />
+            <div className="text-left flex-1 min-w-0">
+              <div className="font-medium text-sm leading-tight">Sales Comprehensive</div>
+              <div className="text-xs text-gray-500 mt-0.5 leading-tight">
+                View comprehensive sales data
+              </div>
+            </div>
+          </Button>
+
           <Button
             onClick={handleDispatchClick}
             variant="ghost"
